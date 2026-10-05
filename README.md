@@ -18,18 +18,21 @@ Hyprland (`hyprctl cursorpos`, socket2) and a Nerd Font.
 
 ```
 nyx/
-  MascotsOverlay.qml   host: island/notch window, positions, cursor + event
-                       polling, moods, hover, control-center dock, slots
-  Mascot.qml           one mascot instance: species resolution, bob, blink
-  FlameMascot.qml      default species: little fire with mouth
-  CatMascot.qml        pointy ears, stripes, whiskers, pink nose
-  DogMascot.qml        floppy ears, eye patch, muzzle, tongue when happy
-  EyesMascot.qml       eyes-only: pair of manga eyes with expressions
-  DotsMascot.qml       colored dots that trail the cursor (no face)
-  WatcherMascot.qml    digital clock retyped with a typewriter cursor
-  MascotFaceEyes.qml   shared face eyes/brows (flame / cat / dog)
-  MascotDock.qml       control center: search, hero, quick actions, grid
-  MascotMetrics.js     vendored scale helpers (no shell imports)
+  nyx.json             registry: name, path and author of every component
+  front/               the "chrome" — island/notch window + control center
+    MascotsOverlay.qml  per-screen island/notch window (positions, cursor +
+                        event polling, moods, dock host)
+    MascotDock.qml      control center: search, hero, quick actions, grid, tabs
+  mascots/             the mascots themselves
+    Mascot.qml          one instance: species resolution, bob, blink
+    FlameMascot.qml     default species: little fire with mouth
+    CatMascot.qml       pointy ears, stripes, whiskers, pink nose
+    DogMascot.qml       floppy ears, eye patch, muzzle, tongue when happy
+    EyesMascot.qml      eyes-only: pair of manga eyes with expressions
+    DotsMascot.qml      colored dots that trail the cursor (no face)
+    WatcherMascot.qml   digital clock retyped with a typewriter cursor
+    MascotFaceEyes.qml  shared face eyes/brows (flame / cat / dog)
+    MascotMetrics.js    vendored scale helpers (no shell imports)
 ```
 
 ## Settings (when `settingsPath` is set)

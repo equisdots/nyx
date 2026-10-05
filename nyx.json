@@ -1,0 +1,20 @@
+{
+  "name": "nyx",
+  "description": "Mascot island + control-center notch for Quickshell (Hyprland).",
+  "author": "xscriptor",
+  "license": "MIT",
+  "version": "0.1.0",
+  "components": [
+    { "name": "MascotsOverlay", "path": "front/MascotsOverlay.qml", "type": "front", "author": "xscriptor", "description": "Per-screen island/notch window: positions, cursor + event polling, moods and dock host." },
+    { "name": "MascotDock", "path": "front/MascotDock.qml", "type": "front", "author": "xscriptor", "description": "Control center: search, hero (clock + now-playing), quick actions, widget grid, tabs." },
+    { "name": "Mascot", "path": "mascots/Mascot.qml", "type": "mascot", "author": "xscriptor", "description": "One mascot instance: species resolution, bob and blink." },
+    { "name": "FlameMascot", "path": "mascots/FlameMascot.qml", "type": "mascot", "author": "xscriptor", "description": "Default species: little fire with a mouth." },
+    { "name": "CatMascot", "path": "mascots/CatMascot.qml", "type": "mascot", "author": "xscriptor", "description": "Pointy ears, stripes, whiskers and a pink nose." },
+    { "name": "DogMascot", "path": "mascots/DogMascot.qml", "type": "mascot", "author": "xscriptor", "description": "Floppy ears, eye patch, muzzle and tongue when happy." },
+    { "name": "EyesMascot", "path": "mascots/EyesMascot.qml", "type": "mascot", "author": "xscriptor", "description": "Eyes-only: a pair of manga eyes with expressions." },
+    { "name": "DotsMascot", "path": "mascots/DotsMascot.qml", "type": "mascot", "author": "xscriptor", "description": "Colored dots that trail the cursor." },
+    { "name": "WatcherMascot", "path": "mascots/WatcherMascot.qml", "type": "mascot", "author": "xscriptor", "description": "Digital clock retyped with a typewriter cursor." },
+    { "name": "MascotFaceEyes", "path": "mascots/MascotFaceEyes.qml", "type": "mascot", "author": "xscriptor", "description": "Shared face eyes/brows (flame / cat / dog)." },
+    { "name": "MascotMetrics", "path": "mascots/MascotMetrics.js", "type": "support", "author": "xscriptor", "description": "Vendored scale helpers (no shell imports)." }
+  ]
+}

@@ -3,7 +3,8 @@ import QtQuick.Shapes
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
-import "MascotMetrics.js" as Metrics
+import "../mascots"
+import "../mascots/MascotMetrics.js" as Metrics
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MascotsOverlay — standalone mascot island for Quickshell (Hyprland).

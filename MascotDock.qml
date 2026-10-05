@@ -39,6 +39,7 @@ Item {
     property string title: "Control Center"
     property var favorites: []
     property string tab: "all"
+    onTabChanged: dock.page = 0
 
     signal launchRequested(string id)
     signal quickRequested(string id)
@@ -679,15 +680,16 @@ Item {
                     }
                 }
             }
+        }
 
-            Text {
-                visible: dock.filteredCount === 0
-                anchors.centerIn: grid
-                text: "No results"
-                font.family: "Hack Nerd Font"
-                font.pixelSize: dock.s(12)
-                color: Qt.alpha(dock.cText, 0.5)
-            }
+        Text {
+            visible: dock.filteredCount === 0
+            anchors.horizontalCenter: grid.horizontalCenter
+            y: grid.y + dock.s(28)
+            text: dock.favMode ? "No favorites yet — tap ☆ on a widget" : "No results"
+            font.family: "Hack Nerd Font"
+            font.pixelSize: dock.s(12)
+            color: Qt.alpha(dock.cText, 0.5)
         }
 
         // Footer: paging + dots ─────────────────────────────────────────────

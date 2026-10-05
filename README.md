@@ -51,6 +51,13 @@ nyx/
 | `mascots.dock.style` | `floating` `joined` | `floating` | `joined` welds the panel under the notch (notch widens + squares off) |
 | `mascots.dock.columns` / `rows` | 3..7 / 1..3 | `5` / `2` | widget grid shape (page size = columns × rows) |
 | `mascots.dock.hero` / `quick` / `search` | bool | `true` | show the clock + now-playing hero, quick actions and search |
+| `mascots.dock.favorites` | array of widget ids | `[]` | tiles pinned to the dock's Favorites tab |
+| `mascots.watcher.format` | `24` `12` | `24` | Watcher clock format |
+| `mascots.watcher.seconds` | bool | `true` | show the seconds field |
+| `mascots.watcher.speed` | number | `1.0` | typewriter speed multiplier |
+| `mascots.watcher.moods` | bool | `true` | mood-driven effects (angry red, sleepy dim, happy bounce) |
+| `mascots.watcher.eye` | bool | `false` | little tracking eye next to the clock |
+| `mascots.profiles` | object | `{}` | named presets of the whole mascots block (saved in the editor) |
 | `uiScale` | number | `1.0` | extra user scale |
 | `bar.position` / `bar.thickness` | string / px | `top` / 48 | island margin below the bar band |
 
@@ -60,7 +67,9 @@ nyx/
 `position`, `barPosition`, `barThickness`, `appearance`, `notchWidth`,
 `notchHeight`, `notchOffset`, `notchReserve`, `dockSize`, `dockWidth`,
 `dockStyle`, `dockColumns`, `dockRows`, `dockShowHero`, `dockShowQuick`,
-`dockShowSearch`, `quickActions`, `palette`, `settingsPath`,
+`dockShowSearch`, `quickActions`, `quickHandler`, `stats`, `favorites`,
+`watcherFormat`, `watcherSeconds`, `watcherSpeed`, `watcherMoods`,
+`watcherEye`, `palette`, `settingsPath`,
 `widgetStatePath`, `dockWidgetName`, `widgetRectProvider`, `widgetList` and
 `widgetLauncher`. The palette object needs `base`, `surface1`, `text`, `crust`,
 `red`, `yellow`, `green`, `blue`, `mauve` (colors) and `glassOn` (bool); a

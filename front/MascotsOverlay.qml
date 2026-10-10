@@ -162,40 +162,44 @@ Variants {
 
             // ── notch geometry ─────────────────────────────────────────────
             readonly property real surfaceW: overlay.screen ? overlay.screen.width : 1920
+            // Actual surface width. When the shell frame reserves left/right,
+            // the compositor shrinks this full-width (reserveSpace) surface, so
+            // screen.width is wrong for layout; overlay.width is the real size.
+            readonly property real contentW: overlay.width > 1 ? overlay.width : overlay.surfaceW
             readonly property real notchH: root.notchHeight > 0
                 ? Math.max(overlay.pillH + overlay.s(6), overlay.s(root.notchHeight))
                 : Math.max(overlay.pillH + overlay.s(10), overlay.s(38))
             readonly property real notchMinW: overlay.pillW + overlay.s(20)
             readonly property real dockPanelW: {
                 if (root.dockWidth > 0)
-                    return Math.min(overlay.s(root.dockWidth), overlay.surfaceW * 0.72);
+                    return Math.min(overlay.s(root.dockWidth), overlay.contentW * 0.72);
                 let preset = String(root.dockSize || "large").toLowerCase();
                 let base = preset === "compact" ? 560 : preset === "medium" ? 720
                     : preset === "wide" ? 1200 : 900;
-                return Math.min(overlay.s(base), overlay.surfaceW * 0.72);
+                return Math.min(overlay.s(base), overlay.contentW * 0.72);
             }
             readonly property bool dockJoined: String(root.dockStyle || "floating").toLowerCase() === "joined"
             // While a joined dock is open the notch widens to match it and the
             // bottom corners square off, so the two read as one surface.
             readonly property bool joinedOpen: overlay.dockJoined && overlay.panelOpen
             readonly property real baseNotchW: {
-                let maxW = overlay.surfaceW * 0.5;
+                let maxW = overlay.contentW * 0.5;
                 let want = overlay.s(Math.max(80, root.notchWidth));
                 return Math.max(overlay.notchMinW, Math.min(maxW, want));
             }
             readonly property real notchW: overlay.joinedOpen
-                ? Math.min(overlay.surfaceW * 0.9, Math.max(overlay.baseNotchW, overlay.dockPanelW))
+                ? Math.min(overlay.contentW * 0.9, Math.max(overlay.baseNotchW, overlay.dockPanelW))
                 : overlay.baseNotchW
             readonly property real notchRadius: overlay.joinedOpen ? 0 : overlay.s(13)
             readonly property real notchY: overlay.s(root.notchOffset)
             readonly property real chromeW: overlay.notch ? overlay.notchW : overlay.pillW
             readonly property real chromeH: overlay.notch ? overlay.notchH : overlay.pillH
             // A notch can reserve the top strip; that needs a full-width surface
-            // (three anchors), so the content is laid out against the screen
-            // width instead of the window's implicit width.
+            // (three anchors), so the content is laid out against the surface's
+            // real width (which the compositor may shrink by other struts).
             readonly property bool reserveSpace: overlay.notch && root.notchReserve
                 && root.enabled
-            readonly property real layoutW: overlay.reserveSpace ? overlay.surfaceW : overlay.implicitWidth
+            readonly property real layoutW: overlay.reserveSpace ? overlay.contentW : overlay.implicitWidth
             readonly property real notchX: overlay.posLeft ? overlay.boxMargin
                 : overlay.posRight ? (overlay.layoutW - overlay.notchW - overlay.boxMargin)
                 : Math.round((overlay.layoutW - overlay.notchW) / 2)
@@ -216,7 +220,10 @@ Variants {
                 : overlay.boxMargin
             // Screen-space origin of this surface (anchored edges have no
             // left/top margin, so the window top-left is computed instead).
-            readonly property real originX: overlay.reserveSpace ? 0
+            // When reserveSpace, the compositor centres the shrunk surface, so
+            // the origin is half the horizontal loss.
+            readonly property real originX: overlay.reserveSpace
+                ? Math.max(0, Math.round((overlay.surfaceW - overlay.contentW) / 2))
                 : (overlay.posRight
                     ? (overlay.screen ? overlay.screen.width - overlay.implicitWidth
                         - overlay.margins.right : 0)

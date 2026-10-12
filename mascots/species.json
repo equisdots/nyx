@@ -10,5 +10,12 @@
   { "id": "wifi",        "label": "Wi-Fi",   "icon": "󰤨", "order": 90, "entry": "WifiMascot.qml",        "customizable": ["color", "size"], "author": "xscriptor", "description": "Connected Wi-Fi signal strength." },
   { "id": "volume",      "label": "Volume",  "icon": "󰕾", "order": 100, "entry": "VolumeMascot.qml",     "customizable": ["color", "size"], "author": "xscriptor", "description": "Audio sink volume and mute." },
   { "id": "temperature", "label": "Temp",    "icon": "󰔄", "order": 110, "entry": "TemperatureMascot.qml", "customizable": ["color", "size"], "author": "xscriptor", "description": "SoC thermal zone." },
-  { "id": "watcher",     "label": "Watcher", "icon": "󰅐", "order": 120, "builtin": true, "author": "xscriptor", "description": "Digital clock retyped with a typewriter cursor." }
+  { "id": "watcher",     "label": "Watcher", "icon": "󰅐", "order": 120, "builtin": true, "author": "xscriptor", "description": "Digital clock retyped with a typewriter cursor." },
+  { "id": "github",      "label": "GitHub",  "icon": "", "order": 130, "entry": "GithubMascot.qml", "popover": "GithubPopover.qml",
+    "controls": [
+      { "type": "color" },
+      { "type": "size" },
+      { "type": "text", "key": "user", "label": "User", "placeholder": "github username", "default": "xscriptor" }
+    ],
+    "author": "xscriptor", "description": "Contribution heatmap; the octocat opens the graph." }
 ]

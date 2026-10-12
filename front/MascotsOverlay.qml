@@ -3,6 +3,7 @@ import QtQuick.Shapes
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
+import Quickshell.Hyprland
 import "../mascots"
 import "../mascots/MascotMetrics.js" as Metrics
 
@@ -143,14 +144,15 @@ Variants {
                     if (overlay.mascotCatalogList[i].id === id) return overlay.mascotCatalogList[i];
                 return null;
             }
-            function entryUrl(d) {
-                if (!d || !d.entry) return "";
-                let e = String(d.entry);
+            function resolveFile(d, rel) {
+                if (!rel) return "";
+                let e = String(rel);
                 if (e.indexOf("://") !== -1) return e;
                 if (e.charAt(0) === "/") return "file://" + e;
-                let base = d._base ? String(d._base) : "";
+                let base = (d && d._base) ? String(d._base) : "";
                 return base !== "" ? "file://" + base + "/" + e : e;
             }
+            function entryUrl(d) { return resolveFile(d, d ? d.entry : ""); }
             function mascotOptions(id) {
                 let o = (root.speciesOptions && root.speciesOptions[id]) ? root.speciesOptions[id] : {};
                 if (id === "watcher") o = Object.assign({}, root.watcherOptions, o);
@@ -205,9 +207,15 @@ Variants {
             readonly property real pillW: (overlay.s(48) * overlay.mascotCount + overlay.s(32))
                 * overlay.mascotScale
             readonly property real pillH: overlay.s(46) * overlay.mascotScale
-            readonly property real panelW: dockPanel.panelWidth
-            readonly property real panelH: dockPanel.panelHeight
-            readonly property real panelShown: Math.max(0, dockPanel.reveal)
+            readonly property real panelW: overlay.popoverId !== ""
+                ? overlay.popoverContentW : dockPanel.panelWidth
+            readonly property real panelH: overlay.popoverId !== ""
+                ? overlay.popoverContentH : dockPanel.panelHeight
+            readonly property real popoverContentW: (popoverLoader.item && popoverLoader.item.implicitWidth > 0)
+                ? popoverLoader.item.implicitWidth : overlay.s(320)
+            readonly property real popoverContentH: (popoverLoader.item && popoverLoader.item.implicitHeight > 0)
+                ? popoverLoader.item.implicitHeight : overlay.s(180)
+            readonly property real panelShown: Math.max(0, dockPanel.reveal, overlay.popoverReveal)
             readonly property real panelSpan: overlay.panelShown * (overlay.panelGap + overlay.panelH)
             readonly property real slotW: Math.max(overlay.notch ? overlay.notchW : overlay.pillW,
                 overlay.panelW)
@@ -482,11 +490,49 @@ Variants {
 
             // ── dock panel ─────────────────────────────────────────────────
             property bool panelOpen: false
-            function togglePanel() { overlay.panelOpen = !overlay.panelOpen; }
+            function togglePanel() { overlay.closePopover(); overlay.panelOpen = !overlay.panelOpen; }
             function launchWidget(id) {
                 overlay.panelOpen = false;
                 overlay.setAllMoods("happy");
                 if (root.widgetLauncher) root.widgetLauncher(id);
+            }
+
+            // ── per-mascot popover (shares the dock's panel slot/mask) ─────
+            // popoverId stays set through the close animation so the panel
+            // geometry couples to the real size while it shrinks.
+            property bool popoverOpen: false
+            property string popoverId: ""
+            property real popoverReveal: overlay.popoverOpen ? 1 : 0
+            Behavior on popoverReveal { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+            onPopoverRevealChanged: {
+                if (!overlay.popoverOpen && overlay.popoverReveal < 0.01) overlay.popoverId = "";
+            }
+            function openPopover(id) { overlay.panelOpen = false; overlay.popoverId = String(id); overlay.popoverOpen = true; }
+            function closePopover() { overlay.popoverOpen = false; }
+            function togglePopover(id) {
+                if (overlay.popoverOpen && overlay.popoverId === String(id)) overlay.closePopover();
+                else overlay.openPopover(id);
+            }
+            function selectedOptions() { return overlay.mascotOptions(overlay.popoverId); }
+            // Click on the island: the mascot under the pointer opens its
+            // popover if its manifest declares one; otherwise the dock. While a
+            // popover is open, any island click collapses it.
+            function islandClicked(localX) {
+                if (overlay.popoverOpen) { overlay.closePopover(); return; }
+                let n = overlay.mascotCount;
+                if (n < 1) { overlay.togglePanel(); return; }
+                let i = Math.max(0, Math.min(n - 1, Math.floor(localX / (overlay.chromeW / n))));
+                let item = overlay.speciesLineup[i];
+                let d = item ? overlay.catalogFor(item.id) : null;
+                if (d && d.popover) overlay.togglePopover(item.id);
+                else overlay.togglePanel();
+            }
+
+            // Close the popover when clicking anywhere outside the island/dock.
+            HyprlandFocusGrab {
+                active: overlay.popoverOpen
+                windows: [overlay]
+                onCleared: overlay.closePopover()
             }
 
             // ── cursor (Hyprland) ──────────────────────────────────────────
@@ -724,7 +770,7 @@ Variants {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: overlay.togglePanel()
+                    onClicked: overlay.islandClicked(mouse.x)
                     onEntered: overlay.hoverReaction(true)
                     onExited: overlay.hoverReaction(false)
                 }
@@ -759,6 +805,63 @@ Variants {
                 }
                 onFavoriteToggled: (id) => root.favoriteToggled(id)
                 onCloseRequested: overlay.panelOpen = false
+            }
+
+            // ── per-mascot popover (shares the dock's panel slot) ──────────
+            // The visible size grows/shrinks with the reveal (like the dock):
+            // the background scales its height and the content a vertical Scale,
+            // both anchored to the island-facing edge.
+            Item {
+                id: popoverHost
+                x: overlay.panelX
+                y: overlay.panelY
+                width: overlay.panelW
+                height: overlay.panelH
+                clip: true
+                visible: overlay.popoverReveal > 0.01
+
+                Rectangle {
+                    id: popoverBg
+                    width: parent.width
+                    height: Math.max(0, overlay.panelH * overlay.popoverReveal)
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.top: overlay.panelBelow ? parent.top : undefined
+                    anchors.bottom: overlay.panelBelow ? undefined : parent.bottom
+                    radius: overlay.s(14)
+                    color: Qt.rgba(root.palette.base.r, root.palette.base.g, root.palette.base.b,
+                        root.palette.glassOn === true ? 0.9 : 1.0)
+                    border.width: 1
+                    border.color: Qt.alpha(root.palette.surface1, 0.9)
+                }
+
+                Loader {
+                    id: popoverLoader
+                    width: parent.width
+                    height: overlay.panelH
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.top: overlay.panelBelow ? parent.top : undefined
+                    anchors.bottom: overlay.panelBelow ? undefined : parent.bottom
+                    opacity: overlay.popoverReveal
+                    transform: Scale {
+                        origin.x: 0
+                        origin.y: overlay.panelBelow ? 0 : popoverLoader.height
+                        yScale: Math.max(0.001, overlay.popoverReveal)
+                    }
+                    source: {
+                        if (overlay.popoverId === "") return "";
+                        let d = overlay.catalogFor(overlay.popoverId);
+                        return d && d.popover ? overlay.resolveFile(d, d.popover) : "";
+                    }
+                    onLoaded: {
+                        if (!item) return;
+                        const bind = (name, fn) => { try { item[name] = Qt.binding(fn); } catch (e) {} };
+                        bind("options", () => overlay.selectedOptions());
+                        bind("palette", () => root.palette);
+                        bind("scaleUnit", () => overlay.baseScale);
+                        bind("accent", () => overlay.accentColor);
+                        try { item.closeRequested.connect(() => overlay.closePopover()); } catch (e) {}
+                    }
+                }
             }
 
             // ── mascots ────────────────────────────────────────────────────

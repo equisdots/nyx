@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Shapes
+import ".."
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FlameMascot — the default little fire: teardrop with a wavy tip that wiggles
@@ -19,6 +20,8 @@ Item {
     property color red: "#f38ba8"
     property bool blinking: false
     property real clock: 0
+    property var palette: ({})
+    property var options: ({})
 
     readonly property real u: width / 100
     readonly property color lightenColor: Qt.lighter(flame.tint, 1.32)

@@ -1,0 +1,1 @@
+{ "id": "watcher", "label": "Watcher", "icon": "󰅐", "order": 120, "entry": "WatcherMascot.qml", "author": "xscriptor", "description": "Digital clock retyped with a typewriter cursor." }

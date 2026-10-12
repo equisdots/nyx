@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Shapes
+import ".."
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DogMascot — floppy ears peeking from behind the head, an eye patch, a lighter
@@ -18,6 +19,8 @@ Item {
     property color red: "#f38ba8"
     property bool blinking: false
     property real clock: 0
+    property var palette: ({})
+    property var options: ({})
 
     readonly property real u: width / 100
     readonly property color shade: Qt.darker(dog.tint, 1.30)

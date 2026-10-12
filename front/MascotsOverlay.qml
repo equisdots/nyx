@@ -1,9 +1,9 @@
 import QtQuick
 import QtQuick.Shapes
+import QtQml
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
-import Quickshell.Hyprland
 import "../mascots"
 import "../mascots/MascotMetrics.js" as Metrics
 
@@ -528,13 +528,6 @@ Variants {
                 else overlay.togglePanel();
             }
 
-            // Close the popover when clicking anywhere outside the island/dock.
-            HyprlandFocusGrab {
-                active: overlay.popoverOpen
-                windows: [overlay]
-                onCleared: overlay.closePopover()
-            }
-
             // ── cursor (Hyprland) ──────────────────────────────────────────
             property real cursorX: 0
             property real cursorY: 0
@@ -854,14 +847,13 @@ Variants {
                     }
                     onLoaded: {
                         if (!item) return;
-                        const bind = (name, fn) => { try { item[name] = Qt.binding(fn); } catch (e) {} };
-                        bind("options", () => overlay.selectedOptions());
-                        bind("palette", () => root.palette);
-                        bind("scaleUnit", () => overlay.baseScale);
-                        bind("accent", () => overlay.accentColor);
                         try { item.closeRequested.connect(() => overlay.closePopover()); } catch (e) {}
                     }
                 }
+                Binding { target: popoverLoader.item; property: "options";   value: overlay.selectedOptions() }
+                Binding { target: popoverLoader.item; property: "palette";   value: root.palette }
+                Binding { target: popoverLoader.item; property: "scaleUnit"; value: overlay.baseScale }
+                Binding { target: popoverLoader.item; property: "accent";    value: overlay.accentColor }
             }
 
             // ── mascots ────────────────────────────────────────────────────

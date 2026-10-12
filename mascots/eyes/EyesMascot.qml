@@ -19,6 +19,8 @@ Item {
     property color red: "#f38ba8"
     property bool blinking: false
     property real clock: 0
+    property var palette: ({})
+    property var options: ({})
 
     readonly property real u: width / 100
     readonly property real eyeOpen: eyes.blinking ? 0.10

@@ -1,4 +1,5 @@
 import QtQuick
+import ".."
 
 // Battery: level icon + percentage, colour by level / charging state.
 InfoMascot {

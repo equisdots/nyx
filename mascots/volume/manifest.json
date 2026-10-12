@@ -1,0 +1,1 @@
+{ "id": "volume", "label": "Volume", "icon": "󰕾", "order": 100, "entry": "VolumeMascot.qml", "customizable": ["color", "size"], "author": "xscriptor", "description": "Audio sink volume and mute." }

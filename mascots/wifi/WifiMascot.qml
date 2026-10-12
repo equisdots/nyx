@@ -1,4 +1,5 @@
 import QtQuick
+import ".."
 
 // Wi-Fi: connected network signal strength.
 InfoMascot {

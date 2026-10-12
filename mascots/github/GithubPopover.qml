@@ -15,11 +15,20 @@ Item {
     id: root
 
     property var options: ({})
-    property var palette: ({})
+    property var palette: ({
+        base: "#1e1e2e", surface1: "#45475a", text: "#cdd6f4", subtext0: "#a6adc8",
+        crust: "#11111b", red: "#f38ba8", yellow: "#f9e2af", green: "#a6e3a1",
+        blue: "#89b4fa", mauve: "#cba6f7"
+    })
     property real scaleUnit: 1.0
     property color accent: "#cba6f7"
 
     function s(v) { return v * (scaleUnit > 0 ? scaleUnit : 1.0) }
+    // Safe palette access: the injected palette may land a frame after the
+    // default, so never let a colour binding evaluate to undefined.
+    function pc(name, fallback) {
+        return (palette && palette[name] !== undefined) ? palette[name] : fallback;
+    }
 
     readonly property string user: (options && options.user) ? String(options.user) : "xscriptor"
     readonly property string scriptPath: String(Qt.resolvedUrl("github_fetch.sh")).replace(/^file:\/\//, "")
@@ -31,11 +40,14 @@ Item {
 
     function baseColor() {
         let c = (options && options.color) ? options.color : "";
-        if (c === "") return palette.green;
+        if (c === "") return root.pc("green", "#a6e3a1");
         return (palette[c] !== undefined) ? palette[c] : c;
     }
     function colorFor(level) {
-        if (level <= 0) return Qt.rgba(palette.text.r, palette.text.g, palette.text.b, 0.07);
+        if (level <= 0) {
+            let t = root.pc("text", "#cdd6f4");
+            return Qt.rgba(t.r, t.g, t.b, 0.07);
+        }
         let b = baseColor();
         let a = 0.28 + 0.18 * Math.min(4, level);
         return Qt.rgba(b.r, b.g, b.b, Math.min(1.0, a));
@@ -90,7 +102,7 @@ Item {
             font.family: "Hack Nerd Font"
             font.weight: Font.Black
             font.pixelSize: s(14)
-            color: palette.text
+            color: root.pc("text", "#cdd6f4")
         }
         Text {
             anchors.verticalCenter: parent.verticalCenter
@@ -98,7 +110,7 @@ Item {
             text: "· contributions"
             font.family: "Hack Nerd Font"
             font.pixelSize: s(11)
-            color: palette.subtext0 !== undefined ? palette.subtext0 : palette.text
+            color: root.pc("subtext0", root.pc("text", "#cdd6f4"))
         }
     }
 
@@ -110,7 +122,7 @@ Item {
         text: "loading @" + root.user + "…"
         font.family: "Hack Nerd Font"
         font.pixelSize: s(12)
-        color: palette.text
+        color: root.pc("text", "#cdd6f4")
     }
     Text {
         anchors.horizontalCenter: parent.horizontalCenter
@@ -119,7 +131,7 @@ Item {
         text: "no data for @" + root.user
         font.family: "Hack Nerd Font"
         font.pixelSize: s(12)
-        color: palette.red
+        color: root.pc("red", "#f38ba8")
     }
 
     Item {

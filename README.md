@@ -24,7 +24,9 @@ nyx/
                         event polling, moods, dock host)
     MascotDock.qml      control center: search, hero, quick actions, grid, tabs
   mascots/             the mascots themselves
-    Mascot.qml          one instance: species resolution, bob, blink
+    species.json        shipped manifests: one entry per built-in species
+    Mascot.qml          one instance: species resolution, bob, blink; loads a
+                        custom species' QML when the manifest carries "entry"
     FlameMascot.qml     default species: little fire with mouth
     CatMascot.qml       pointy ears, stripes, whiskers, pink nose
     DogMascot.qml       floppy ears, eye patch, muzzle, tongue when happy
@@ -40,8 +42,8 @@ nyx/
 | Key | Values | Default | Meaning |
 | --- | --- | --- | --- |
 | `mascots.enabled` | bool | `false` | master switch |
-| `mascots.species` | `flame` `cat` `dog` `eyes` `dots` `watcher` `mixed` | `flame` | look; `classic` maps to `flame` |
-| `mascots.count` | 1..3 | `3` | mascots in the island (width adapts) |
+| `mascots.species` | id or `[id, …]` | `flame` | look: one id for every mascot (or `mixed`), or an **array** = one mascot per id (the lineup). ids come from the discovered catalog |
+| `mascots.count` | 1..8 | `3` | mascots in the island (string mode only; array mode uses the lineup length) |
 | `mascots.size` | 0.6..1.6 | `1.0` | mascot scale |
 | `mascots.position` | `top-left` … `bottom-right` | `top-center` | island position; the dock unfolds toward the screen centre (up when the island is at the bottom) |
 | `mascots.appearance` | `island` `notch` | `island` | `notch` snaps to the top edge with a macOS-style silhouette (no coloured border); dock still floats |
@@ -64,9 +66,40 @@ nyx/
 | `uiScale` | number | `1.0` | extra user scale |
 | `bar.position` / `bar.thickness` | string / px | `top` / 48 | island margin below the bar band |
 
+## Extending: species & notch cards
+
+Both are **discovered** from a shipped (repo) dir and a user dir; a user file
+whose `id` matches a shipped one overrides it. Drop a file and restart the shell
+(or call `MascotsCatalog.refresh()` in the equisdots shell) to pick it up.
+
+**Species** — `~/.config/hypr/mascots/species/*.json`
+(shipped: `mascots/species.json`):
+
+```json
+{ "id": "moon", "label": "Moon", "icon": "󰽦", "entry": "Moon.qml", "order": 100 }
+```
+
+`entry` is a QML file next to the manifest; omit it to use a built-in kind
+(`flame` `cat` `dog` `eyes` `dots` `watcher`). The QML root may declare any of
+`mood`, `lookX`, `lookY`, `tint`, `crust`, `text`, `red`, `blinking`, `clock`,
+`palette`, `options` — the host binds them. Enable species in Settings → Mascots;
+each enabled species adds one mascot and the island width follows the count.
+
+**Notch cards** — `~/.config/hypr/mascots/notch/*.json`
+(shipped: the shell's `notch/defaults.json`):
+
+```json
+{ "id": "weather", "label": "Weather", "icon": "󰖐", "exec": "…" }
+```
+
+`exec` runs a shell command when the card is picked; without it the card opens
+the shell panel with that `id`. Add `"enabled": false` to hide a shipped card
+and `"thumb"` for a preview image.
+
 ## Public API (per screen)
 
-`MascotsOverlay` exposes `enabled`, `species`, `count`, `size`, `uiScale`,
+`MascotsOverlay` exposes `enabled`, `species` (string or array), `mascotCatalog`,
+`count`, `size`, `uiScale`,
 `position`, `barPosition`, `barThickness`, `appearance`, `notchWidth`,
 `notchHeight`, `notchOffset`, `notchReserve`, `dockSize`, `dockWidth`,
 `dockStyle`, `dockColumns`, `dockRows`, `dockShowHero`, `dockShowQuick`,

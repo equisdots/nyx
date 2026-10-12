@@ -4,11 +4,11 @@
   { "id": "dog",         "label": "Dog",     "icon": "󰩃", "order": 30, "builtin": true, "author": "xscriptor", "description": "Floppy ears, eye patch, muzzle and tongue when happy." },
   { "id": "eyes",        "label": "Eyes",    "icon": "󰈈", "order": 40, "builtin": true, "author": "xscriptor", "description": "Eyes-only: a pair of manga eyes with expressions." },
   { "id": "dots",        "label": "Dots",    "icon": "󰇘", "order": 50, "builtin": true, "author": "xscriptor", "description": "Colored dots that trail the cursor." },
-  { "id": "battery",     "label": "Battery", "icon": "󰁹", "order": 60, "entry": "BatteryMascot.qml",     "author": "xscriptor", "description": "Battery level and charge state." },
-  { "id": "cpu",         "label": "CPU",     "icon": "󰻠", "order": 70, "entry": "CpuMascot.qml",         "author": "xscriptor", "description": "CPU utilisation." },
-  { "id": "memory",      "label": "Memory",  "icon": "󰍛", "order": 80, "entry": "MemoryMascot.qml",      "author": "xscriptor", "description": "Used RAM percentage." },
-  { "id": "wifi",        "label": "Wi-Fi",   "icon": "󰤨", "order": 90, "entry": "WifiMascot.qml",        "author": "xscriptor", "description": "Connected Wi-Fi signal strength." },
-  { "id": "volume",      "label": "Volume",  "icon": "󰕾", "order": 100, "entry": "VolumeMascot.qml",     "author": "xscriptor", "description": "Audio sink volume and mute." },
-  { "id": "temperature", "label": "Temp",    "icon": "󰔄", "order": 110, "entry": "TemperatureMascot.qml", "author": "xscriptor", "description": "SoC thermal zone." },
+  { "id": "battery",     "label": "Battery", "icon": "󰁹", "order": 60, "entry": "BatteryMascot.qml",     "customizable": ["color", "size"], "author": "xscriptor", "description": "Battery level and charge state." },
+  { "id": "cpu",         "label": "CPU",     "icon": "󰻠", "order": 70, "entry": "CpuMascot.qml",         "customizable": ["color", "size"], "author": "xscriptor", "description": "CPU utilisation." },
+  { "id": "memory",      "label": "Memory",  "icon": "󰍛", "order": 80, "entry": "MemoryMascot.qml",      "customizable": ["color", "size"], "author": "xscriptor", "description": "Used RAM percentage." },
+  { "id": "wifi",        "label": "Wi-Fi",   "icon": "󰤨", "order": 90, "entry": "WifiMascot.qml",        "customizable": ["color", "size"], "author": "xscriptor", "description": "Connected Wi-Fi signal strength." },
+  { "id": "volume",      "label": "Volume",  "icon": "󰕾", "order": 100, "entry": "VolumeMascot.qml",     "customizable": ["color", "size"], "author": "xscriptor", "description": "Audio sink volume and mute." },
+  { "id": "temperature", "label": "Temp",    "icon": "󰔄", "order": 110, "entry": "TemperatureMascot.qml", "customizable": ["color", "size"], "author": "xscriptor", "description": "SoC thermal zone." },
   { "id": "watcher",     "label": "Watcher", "icon": "󰅐", "order": 120, "builtin": true, "author": "xscriptor", "description": "Digital clock retyped with a typewriter cursor." }
 ]

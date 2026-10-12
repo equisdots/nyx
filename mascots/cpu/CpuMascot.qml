@@ -1,4 +1,5 @@
 import QtQuick
+import ".."
 
 // CPU: total utilisation, sampled with top, colour by load.
 InfoMascot {

@@ -1,4 +1,5 @@
 import QtQuick
+import ".."
 
 // Memory: used RAM as a percentage of total.
 InfoMascot {

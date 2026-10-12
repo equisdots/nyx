@@ -1,0 +1,1 @@
+{ "id": "temperature", "label": "Temp", "icon": "󰔄", "order": 110, "entry": "TemperatureMascot.qml", "customizable": ["color", "size"], "author": "xscriptor", "description": "SoC thermal zone." }

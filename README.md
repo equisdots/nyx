@@ -21,21 +21,21 @@ nyx/
   nyx.json             registry: name, path and author of every component
   front/               the "chrome" — island/notch window + control center
     MascotsOverlay.qml  per-screen island/notch window (positions, cursor +
-                        event polling, moods, dock host)
+                        event polling, moods, dock host, per-mascot popovers)
     MascotDock.qml      control center: search, hero, quick actions, grid, tabs
-  mascots/             the mascots themselves
-    species.json        shipped manifests: one entry per built-in species
-    Mascot.qml          one instance: species resolution, bob, blink; loads a
-                        custom species' QML when the manifest carries "entry"
-    FlameMascot.qml     default species: little fire with mouth
-    CatMascot.qml       pointy ears, stripes, whiskers, pink nose
-    DogMascot.qml       floppy ears, eye patch, muzzle, tongue when happy
-    EyesMascot.qml      eyes-only: pair of manga eyes with expressions
-    DotsMascot.qml      colored dots that trail the cursor (no face)
-    WatcherMascot.qml   digital clock retyped with a typewriter cursor
+  mascots/             species, one folder each + the shared host/base
+    Mascot.qml          host: loads the species QML (entry), bob / blink / moods
+    InfoMascot.qml      base for the "info" species (glyph + value)
     MascotFaceEyes.qml  shared face eyes/brows (flame / cat / dog)
     MascotMetrics.js    vendored scale helpers (no shell imports)
+    flame/manifest.json + FlameMascot.qml
+    cat|dog|eyes|dots|watcher/
+    battery|cpu|memory|wifi|volume|temperature/   (InfoMascot-based)
+    github/manifest.json + GithubMascot.qml + GithubPopover.qml + github_fetch.sh
 ```
+
+A species folder holds its `manifest.json` and its files (`entry`, optional
+`popover`, scripts, assets); `entry`/`popover` resolve relative to the folder.
 
 ## Settings (when `settingsPath` is set)
 
@@ -96,11 +96,11 @@ species (`battery`, `cpu`, `memory`, `wifi`, `volume`, `temperature`) declare
 
 `popover` (optional) is a QML file next to the manifest. A species that declares
 one becomes **clickable**: clicking its mascot opens that popover in a panel
-under/over the island (clicking the island again, or anywhere outside, collapses
-it). The popover root's contract is `options`, `palette`, `scaleUnit`, `accent`.
-The shipped `github` species uses this: the octocat opens the contribution
-heatmap for `options.user` (see `mascots/GithubMascot.qml` +
-`mascots/GithubPopover.qml`).
+under/over the island (clicking the island again collapses it). The popover root's
+contract is `options`, `palette`, `scaleUnit`, `accent`. The shipped `github`
+species uses this: the octocat opens the contribution heatmap for `options.user`
+(see `mascots/github/`); the fetch is cached per user
+(`~/.cache/nyx/github/<user>.json`, `GITHUB_CACHE_TTL` seconds, default 1800).
 
 **Notch cards** — `~/.config/hypr/mascots/notch/*.json`
 (shipped: the shell's `notch/defaults.json`):

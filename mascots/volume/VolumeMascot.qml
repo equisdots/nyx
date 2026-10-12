@@ -1,4 +1,5 @@
 import QtQuick
+import ".."
 
 // Volume: sink level + mute state.
 InfoMascot {

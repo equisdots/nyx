@@ -1,0 +1,1 @@
+{ "id": "battery", "label": "Battery", "icon": "󰁹", "order": 60, "entry": "BatteryMascot.qml", "customizable": ["color", "size"], "author": "xscriptor", "description": "Battery level and charge state." }

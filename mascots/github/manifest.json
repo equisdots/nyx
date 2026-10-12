@@ -1,0 +1,3 @@
+{ "id": "github", "label": "GitHub", "icon": "", "order": 130, "entry": "GithubMascot.qml", "popover": "GithubPopover.qml",
+  "controls": [ { "type": "color" }, { "type": "size" }, { "type": "text", "key": "user", "label": "User", "placeholder": "github username", "default": "xscriptor" } ],
+  "author": "xscriptor", "description": "Contribution heatmap; the octocat opens the graph." }

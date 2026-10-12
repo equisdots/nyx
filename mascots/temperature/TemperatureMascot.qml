@@ -1,4 +1,5 @@
 import QtQuick
+import ".."
 
 // Temperature: CPU/SoC thermal zone, colour by threshold.
 InfoMascot {

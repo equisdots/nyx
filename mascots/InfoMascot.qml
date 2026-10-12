@@ -36,6 +36,18 @@ Item {
     property string valueText: "…"
     property color accentColor: tint
 
+    // per-species customization (from settings → mascots.options.<id>, injected
+    // by the host as `options`): `color` overrides the accent, `size` scales
+    // the content. A species declares which it accepts in its manifest.
+    readonly property real contentScale: (options && typeof options.size === "number")
+        ? Math.max(0.5, Math.min(2.0, options.size)) : 1.0
+    function resolveColor(c) {
+        if (!c) return accentColor;
+        return (palette && palette[c] !== undefined) ? palette[c] : c;
+    }
+    readonly property color displayedAccent: (options && options.color)
+        ? resolveColor(options.color) : accentColor
+
     scale: mood === "happy" ? 1.06 : 1.0
     Behavior on scale { NumberAnimation { duration: 260; easing.type: Easing.OutBack } }
 
@@ -73,13 +85,14 @@ Item {
         anchors.centerIn: parent
         width: parent.width
         spacing: -info.height * 0.04
+        scale: info.contentScale
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             text: info.glyph
             font.family: "Hack Nerd Font"
             font.pixelSize: info.height * 0.58
-            color: info.accentColor
+            color: info.displayedAccent
             Behavior on color { ColorAnimation { duration: 300 } }
         }
         Text {

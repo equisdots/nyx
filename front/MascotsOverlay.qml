@@ -119,6 +119,9 @@ Variants {
     // { id, label, icon, entry?, builtin?, _base }. The lineup resolves ids
     // from this catalog; a custom id carries an "entry" QML file to load.
     property var mascotCatalog: []
+    // Per-species options from settings → mascots.options.<id>, injected per
+    // mascot through the `options` contract (color, size, …).
+    property var speciesOptions: ({})
 
     delegate: Component {
         PanelWindow {
@@ -147,6 +150,11 @@ Variants {
                 if (e.charAt(0) === "/") return "file://" + e;
                 let base = d._base ? String(d._base) : "";
                 return base !== "" ? "file://" + base + "/" + e : e;
+            }
+            function mascotOptions(id) {
+                let o = (root.speciesOptions && root.speciesOptions[id]) ? root.speciesOptions[id] : {};
+                if (id === "watcher") o = Object.assign({}, root.watcherOptions, o);
+                return o;
             }
             readonly property var speciesLineup: {
                 let s = root.species;
@@ -349,6 +357,7 @@ Variants {
                     if (m.size !== undefined) root.size = m.size;
                     if (m.species !== undefined) root.species = m.species;
                     if (m.count !== undefined) root.count = m.count;
+                    root.speciesOptions = (m.options && typeof m.options === "object") ? m.options : {};
                     if (m.position !== undefined) root.position = m.position;
                     if (m.appearance !== undefined) root.appearance = String(m.appearance);
                     if (m.notchWidth !== undefined) root.notchWidth = m.notchWidth;
@@ -780,7 +789,7 @@ Variants {
                     xPos: (overlay.mpos[index] || {}).x || 0
                     yPos: (overlay.mpos[index] || {}).y || 0
                     zSize: overlay.zSize
-                    options: root.watcherOptions
+                    options: overlay.mascotOptions(modelData.id)
                 }
             }
         }

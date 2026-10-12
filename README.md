@@ -85,6 +85,12 @@ whose `id` matches a shipped one overrides it. Drop a file and restart the shell
 `palette`, `options` — the host binds them. Enable species in Settings → Mascots;
 each enabled species adds one mascot and the island width follows the count.
 
+`customizable` lists the option names a species accepts (`["color","size"]`);
+the host passes them through `options` from `settings → mascots.options.<id>`
+(`color` = a palette role or `#hex`, `size` = a 0.6..1.8 content scale). The
+shipped info species (`battery`, `cpu`, `memory`, `wifi`, `volume`,
+`temperature`) are built on `InfoMascot`, which applies both.
+
 **Notch cards** — `~/.config/hypr/mascots/notch/*.json`
 (shipped: the shell's `notch/defaults.json`):
 

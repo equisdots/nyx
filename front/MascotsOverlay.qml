@@ -66,7 +66,7 @@ Variants {
 
     // ── public API ─────────────────────────────────────────────────────────
     property bool enabled: false
-    property string species: "flame"
+    property var species: "flame"
     property int count: 3
     property real size: 1.0
     property real uiScale: 1.0
@@ -115,6 +115,10 @@ Variants {
     property var widgetRectProvider: null
     property var widgetList: []
     property var widgetLauncher: null
+    // Discovered mascot species (injected by the host). Each item is
+    // { id, label, icon, entry?, builtin?, _base }. The lineup resolves ids
+    // from this catalog; a custom id carries an "entry" QML file to load.
+    property var mascotCatalog: []
 
     delegate: Component {
         PanelWindow {
@@ -124,13 +128,53 @@ Variants {
             screen: modelData
 
             // ── derived config ─────────────────────────────────────────────
-            readonly property string speciesKind: {
-                let v = String(root.species || "flame").toLowerCase();
-                if (v === "classic") v = "flame";
-                return ["flame", "cat", "dog", "eyes", "dots", "watcher", "mixed"].indexOf(v) !== -1
-                    ? v : "flame";
+            // Mascots: a catalog-driven lineup. `species` is a string (all
+            // mascots that kind, or "mixed") or an array of ids (one mascot
+            // each, in order). The host injects `mascotCatalog`; a custom id
+            // resolves to its QML `entry` (loaded by Mascot.qml).
+            readonly property var mascotCatalogList: (root.mascotCatalog
+                && root.mascotCatalog.length !== undefined) ? root.mascotCatalog : []
+
+            function catalogFor(id) {
+                for (let i = 0; i < overlay.mascotCatalogList.length; i++)
+                    if (overlay.mascotCatalogList[i].id === id) return overlay.mascotCatalogList[i];
+                return null;
             }
-            readonly property int mascotCount: Math.max(1, Math.min(3, Math.round(root.count)))
+            function entryUrl(d) {
+                if (!d || !d.entry) return "";
+                let e = String(d.entry);
+                if (e.indexOf("://") !== -1) return e;
+                if (e.charAt(0) === "/") return "file://" + e;
+                let base = d._base ? String(d._base) : "";
+                return base !== "" ? "file://" + base + "/" + e : e;
+            }
+            readonly property var speciesLineup: {
+                let s = root.species;
+                let ids;
+                if (Array.isArray(s)) {
+                    ids = s.filter(function (x) {
+                        return x !== undefined && x !== null && String(x) !== "";
+                    });
+                } else {
+                    let v = String(s === undefined || s === null ? "flame" : s).toLowerCase();
+                    if (v === "mixed") ids = ["cat", "dog", "eyes"];
+                    else {
+                        let n = Math.max(1, Math.min(8, Math.round(root.count)));
+                        ids = [];
+                        for (let i = 0; i < n; i++) ids.push(v);
+                    }
+                }
+                let out = [];
+                for (let i = 0; i < ids.length && i < 8; i++) {
+                    let id = String(ids[i]).toLowerCase();
+                    if (id === "classic") id = "flame";
+                    let d = overlay.catalogFor(id);
+                    out.push({ id: id, kind: id, entry: d ? overlay.entryUrl(d) : "" });
+                }
+                if (out.length === 0) out.push({ id: "flame", kind: "flame", entry: "" });
+                return out;
+            }
+            readonly property int mascotCount: overlay.speciesLineup.length
             readonly property real mascotScale: Math.max(0.6, Math.min(1.6, root.size))
 
             // Position model (same ids as the editor's position pad). Notch
@@ -710,28 +754,31 @@ Variants {
 
             // ── mascots ────────────────────────────────────────────────────
             Repeater {
-                model: overlay.mascotCount
+                model: overlay.speciesLineup
                 delegate: Mascot {
+                    required property var modelData
+                    required property int index
                     width: overlay.mascotSize
                     height: overlay.mascotSize * 1.18
                     opacity: overlay.mascotsShown ? 1.0 : 0.0
                     visible: opacity > 0.01
                     Behavior on opacity { NumberAnimation { duration: 240; easing.type: Easing.OutCubic } }
 
-                    index: modelData
-                    species: overlay.speciesKind
-                    mood: overlay.moods[modelData] || "idle"
-                    lookX: (overlay.mpos[modelData] || {}).px || 0
-                    lookY: (overlay.mpos[modelData] || {}).py || 0
+                    slot: index
+                    species: modelData.kind
+                    entry: modelData.entry
+                    mood: overlay.moods[index] || "idle"
+                    lookX: (overlay.mpos[index] || {}).px || 0
+                    lookY: (overlay.mpos[index] || {}).py || 0
                     tint: [root.palette.mauve, root.palette.blue,
-                           root.palette.green][modelData % 3]
+                           root.palette.green][index % 3]
                     crust: root.palette.crust
                     text: root.palette.text
                     red: root.palette.red
                     palette: root.palette
                     clock: overlay.clock
-                    xPos: (overlay.mpos[modelData] || {}).x || 0
-                    yPos: (overlay.mpos[modelData] || {}).y || 0
+                    xPos: (overlay.mpos[index] || {}).x || 0
+                    yPos: (overlay.mpos[index] || {}).y || 0
                     zSize: overlay.zSize
                     options: root.watcherOptions
                 }

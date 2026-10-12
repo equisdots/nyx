@@ -11,8 +11,9 @@ import QtQuick
 Item {
     id: mascot
 
-    property int index: 0
-    property string species: "flame"      // flame | cat | dog | eyes | dots | watcher | mixed
+    property int slot: 0
+    property string species: "flame"      // built-in kind id
+    property string entry: ""             // custom species: QML URL (overrides "species")
     property string mood: "idle"
     property real lookX: 0
     property real lookY: 0
@@ -27,13 +28,14 @@ Item {
     property real zSize: 12
     property var options: ({})
 
+    readonly property bool custom: mascot.entry !== ""
     readonly property string kind: mascot.species === "mixed"
-        ? ["cat", "dog", "eyes"][mascot.index % 3]
+        ? ["cat", "dog", "eyes"][mascot.slot % 3]
         : mascot.species
     readonly property real bobAmp: mood === "sleepy" ? 0.6 : (mood === "angry" ? 2.2 : 1.3)
 
     x: mascot.xPos + (mood === "angry" ? Math.sin(mascot.clock / 2.2) * 1.6 : 0)
-    y: mascot.yPos + Math.sin((mascot.clock + mascot.index * 24) / 26) * mascot.bobAmp
+    y: mascot.yPos + Math.sin((mascot.clock + mascot.slot * 24) / 26) * mascot.bobAmp
 
     property bool blinking: false
     Timer {
@@ -46,7 +48,7 @@ Item {
 
     FlameMascot {
         anchors.fill: parent
-        visible: mascot.kind === "flame"
+        visible: !mascot.custom && mascot.kind === "flame"
         mood: mascot.mood
         lookX: mascot.lookX
         lookY: mascot.lookY
@@ -59,7 +61,7 @@ Item {
     }
     CatMascot {
         anchors.fill: parent
-        visible: mascot.kind === "cat"
+        visible: !mascot.custom && mascot.kind === "cat"
         mood: mascot.mood
         lookX: mascot.lookX
         lookY: mascot.lookY
@@ -72,7 +74,7 @@ Item {
     }
     DogMascot {
         anchors.fill: parent
-        visible: mascot.kind === "dog"
+        visible: !mascot.custom && mascot.kind === "dog"
         mood: mascot.mood
         lookX: mascot.lookX
         lookY: mascot.lookY
@@ -85,7 +87,7 @@ Item {
     }
     EyesMascot {
         anchors.fill: parent
-        visible: mascot.kind === "eyes"
+        visible: !mascot.custom && mascot.kind === "eyes"
         mood: mascot.mood
         lookX: mascot.lookX
         lookY: mascot.lookY
@@ -98,7 +100,7 @@ Item {
     }
     DotsMascot {
         anchors.fill: parent
-        visible: mascot.kind === "dots"
+        visible: !mascot.custom && mascot.kind === "dots"
         mood: mascot.mood
         lookX: mascot.lookX
         lookY: mascot.lookY
@@ -112,7 +114,7 @@ Item {
     }
     WatcherMascot {
         anchors.fill: parent
-        visible: mascot.kind === "watcher"
+        visible: !mascot.custom && mascot.kind === "watcher"
         mood: mascot.mood
         lookX: mascot.lookX
         lookY: mascot.lookY
@@ -124,6 +126,31 @@ Item {
         clock: mascot.clock
         palette: mascot.palette
         options: mascot.options
+    }
+
+    // Custom species: load the discovered QML and inject the same contract the
+    // built-in species consume. Guarded so a user species that omits a property
+    // still loads.
+    Loader {
+        id: customEntry
+        anchors.fill: parent
+        active: mascot.custom
+        source: mascot.custom ? mascot.entry : ""
+        onLoaded: {
+            if (!item) return;
+            const bind = (name, fn) => { try { item[name] = Qt.binding(fn); } catch (e) {} };
+            bind("mood", () => mascot.mood);
+            bind("lookX", () => mascot.lookX);
+            bind("lookY", () => mascot.lookY);
+            bind("tint", () => mascot.tint);
+            bind("crust", () => mascot.crust);
+            bind("text", () => mascot.text);
+            bind("red", () => mascot.red);
+            bind("blinking", () => mascot.blinking);
+            bind("clock", () => mascot.clock);
+            bind("palette", () => mascot.palette);
+            bind("options", () => mascot.options);
+        }
     }
 
     Text {

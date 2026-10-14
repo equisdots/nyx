@@ -1,0 +1,11 @@
+{
+  "id": "nyx",
+  "name": "Nyx",
+  "version": "0.1.0",
+  "author": "xscriptor",
+  "description": "Mascot island and control-center notch for the shell",
+  "type": "shell",
+  "compat": { "shell": ">=0.1.0" },
+  "toggle": "mascots.enabled",
+  "settingsTab": "d_nyx"
+}

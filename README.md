@@ -19,6 +19,7 @@ Hyprland (`hyprctl cursorpos`, socket2) and a Nerd Font.
 ```
 nyx/
   nyx.json             registry: name, path and author of every component
+  plugin.json          equisdots plugin manifest (Plugins registry; toggle)
   front/               the "chrome" — island/notch window + control center
     MascotsOverlay.qml  per-screen island/notch window (positions, cursor +
                         event polling, moods, dock host, per-mascot popovers)
@@ -82,7 +83,7 @@ whose `id` matches a shipped one overrides it. Drop a file and restart the shell
 `entry` is a QML file next to the manifest; omit it to use a built-in kind
 (`flame` `cat` `dog` `eyes` `dots` `watcher`). The QML root may declare any of
 `mood`, `lookX`, `lookY`, `tint`, `crust`, `text`, `red`, `blinking`, `clock`,
-`palette`, `options` — the host binds them. Enable species in Settings → Mascots;
+`palette`, `options` — the host binds them. Enable species in Settings → Plugins → Nyx;
 each enabled species adds one mascot and the island width follows the count.
 
 `customizable` lists the option names a species accepts (`["color","size"]`);

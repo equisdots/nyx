@@ -7,6 +7,7 @@
   "type": "shell",
   "compat": { "shell": ">=0.1.0" },
   "toggle": "mascots.enabled",
+  "scope": "mascots",
   "settings": { "page": "settings/NyxPage.qml", "label": "Nyx", "icon": "" },
   "host": "host/Mascots.qml",
   "provides": {

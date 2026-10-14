@@ -1,9 +1,6 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import "../../../../core"
-import "../../../../core/WindowRegistry.js" as Registry
-import "../../../bar"
 import "../front"
 import "../catalog"
 
@@ -27,26 +24,25 @@ Item {
     width: 0
     height: 0
 
-    Colors { id: themeColors }
-
-    Caching { id: paths }
+    // Injected by ui/PluginHosts.qml (post-load; may briefly be null).
+    property var host: null
 
     // ── favorites (persisted in settings.json → mascots.dock.favorites) ────
     readonly property var favorites: {
-        Config.rev; // re-evaluate whenever settings mutate
-        let m = Config.rawSettings.mascots || {};
+        let m = (root.host && root.host.settings) ? root.host.settings.section : {};
         let d = m.dock || {};
         return (d.favorites && d.favorites.length !== undefined) ? d.favorites : [];
     }
     function toggleFavorite(id) {
-        let m = Object.assign({}, Config.rawSettings.mascots || {});
+        if (!root.host || !root.host.settings) return;
+        let m = Object.assign({}, root.host.settings.section);
         let d = Object.assign({}, m.dock || {});
         let f = (d.favorites && d.favorites.length !== undefined) ? d.favorites.slice() : [];
         let i = f.indexOf(String(id));
         if (i >= 0) f.splice(i, 1); else f.push(String(id));
         d.favorites = f;
         m.dock = d;
-        Config.setSetting("mascots", m);
+        root.host.settings.setMany(m);
     }
 
     // ── quick-action states (Wi-Fi / Bluetooth / mute), polled ─────────────
@@ -98,18 +94,24 @@ Item {
     ]
 
     // ── live system stats ──────────────────────────────────────────────────
-    readonly property var stats: [
-        { id: "cpu",  label: "CPU",  icon: "", value: SysData.cpu + "%",         frac: SysData.cpu / 100 },
-        { id: "ram",  label: "RAM",  icon: "", value: SysData.ramPercent + "%",  frac: SysData.ramPercent / 100 },
-        { id: "temp", label: "TEMP", icon: "", value: SysData.temp + "°",        frac: Math.min(1, SysData.temp / 100) }
-    ]
-    Component.onCompleted: SysData.subscribe()
-    Component.onDestruction: SysData.unsubscribe()
+    readonly property var stats: {
+        let sd = (root.host && root.host.stats) ? root.host.stats : { cpu: 0, ramPercent: 0, temp: 0 };
+        return [
+            { id: "cpu",  label: "CPU",  icon: "", value: sd.cpu + "%",        frac: sd.cpu / 100 },
+            { id: "ram",  label: "RAM",  icon: "", value: sd.ramPercent + "%", frac: sd.ramPercent / 100 },
+            { id: "temp", label: "TEMP", icon: "", value: sd.temp + "°",       frac: Math.min(1, sd.temp / 100) }
+        ];
+    }
+    function subscribeStats() { if (root.host && root.host.stats) root.host.stats.subscribe(); }
+    onHostChanged: root.subscribeStats()
+    Component.onCompleted: root.subscribeStats()
+    Component.onDestruction: if (root.host && root.host.stats) root.host.stats.unsubscribe()
 
     // Live wallpaper preview for the Davincix card: davincix repaints
     // current_wallpaper.png whenever the background changes; watching the file
     // bumps wallpaperRev so the dock thumbnail reloads with a fresh URL.
-    readonly property string wallpaperPreviewPath: paths.getCacheDir("wallpaper_picker") + "/current_wallpaper.png"
+    readonly property string wallpaperPreviewPath:
+        (root.host ? root.host.cacheDir("wallpaper_picker") : "") + "/current_wallpaper.png"
     property int wallpaperRev: 0
 
     FileView {
@@ -146,12 +148,12 @@ Item {
 
     // ── overlay ────────────────────────────────────────────────────────────
     MascotsOverlay {
-        palette: themeColors
-        settingsPath: Quickshell.env("HOME") + "/.config/hypr/settings.json"
+        palette: root.host ? root.host.colors : null
+        settingsPath: root.host ? root.host.settingsPath : ""
         widgetStatePath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/quickshell/current_widget"
         dockWidgetName: "applauncher"
         widgetRectProvider: function(name, sw, sh, scale) {
-            return Registry.getLayout(name, 0, 0, sw, sh, scale);
+            return (root.host && root.host.widgets) ? root.host.widgets.getLayout(name, 0, 0, sw, sh, scale) : null;
         }
         mascotCatalog: MascotsCatalog.mascots
         widgetList: root.notchWidgets
@@ -179,17 +181,15 @@ Item {
     // avoidReserve: the island is anchored to its edge, so the frame must not
     // reserve it (a strut would push the island off the screen edge).
     readonly property var frameObstacle: {
-        Config.rev;
-        let s = Config.rawSettings || {};
-        let m = s.mascots || {};
+        let m = (root.host && root.host.settings) ? root.host.settings.section : {};
         if (m.enabled !== true) return [];
-        let uiScale = (s.uiScale !== undefined) ? s.uiScale : 1.0;
-        let bar = s.bar || {};
+        let uiScale = (root.host ? root.host.global("uiScale", 1.0) : 1.0);
+        let bar = (root.host ? root.host.global("bar", {}) : {});
         let out = [];
         let screens = Quickshell.screens || [];
         for (let i = 0; i < screens.length; i++) {
             let scr = screens[i];
-            let k = Registry.getScale(scr.width, scr.height, uiScale);
+            let k = (root.host && root.host.widgets) ? root.host.widgets.getScale(scr.width, scr.height, uiScale) : 1.0;
             let o = root.obstacleFor(m, bar, scr.width, scr.height, k);
             if (o) { o.screen = scr.name; out.push(o); }
         }

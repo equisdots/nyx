@@ -1,0 +1,20 @@
+[
+  { "id": "calendar",          "label": "Timex",     "icon": "󰅐", "order": 10 },
+  { "id": "wallpaper",         "label": "Davincix",  "icon": "󰥶", "order": 20 },
+  { "id": "applauncher",       "label": "Launcher",  "icon": "󰀻", "order": 30 },
+  { "id": "clipboard",         "label": "Clipboard", "icon": "󰨸", "order": 40 },
+  { "id": "idle",              "label": "Idle",      "icon": "󰤄", "order": 50 },
+  { "id": "focustime",         "label": "Focus",     "icon": "󰔛", "order": 60 },
+  { "id": "updater",           "label": "Updater",   "icon": "󰇚", "order": 70 },
+  { "id": "system-monitor",    "label": "Monitor",   "icon": "󰨇", "order": 80 },
+  { "id": "quicknotes",        "label": "Notes",     "icon": "󱇗", "order": 90 },
+  { "id": "rss-reader",        "label": "RSS",       "icon": "󰑫", "order": 100 },
+  { "id": "file-search",       "label": "Files",     "icon": "󰮗", "order": 110 },
+  { "id": "music",             "label": "Music",     "icon": "󰝚", "order": 120 },
+  { "id": "network",           "label": "Network",   "icon": "󰖩", "order": 130 },
+  { "id": "volume",            "label": "Volume",    "icon": "󰕾", "order": 140 },
+  { "id": "battery",           "label": "Battery",   "icon": "󰁹", "order": 150 },
+  { "id": "palette",           "label": "Palettes",  "icon": "󰏘", "order": 160 },
+  { "id": "bar-editor",        "label": "Settings",  "icon": "󰒓", "order": 170 },
+  { "id": "widgets-redactor",  "label": "Widgets",   "icon": "󱇙", "order": 180 }
+]

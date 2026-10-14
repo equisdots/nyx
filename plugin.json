@@ -7,5 +7,12 @@
   "type": "shell",
   "compat": { "shell": ">=0.1.0" },
   "toggle": "mascots.enabled",
-  "settings": { "page": "settings/NyxPage.qml", "label": "Nyx", "icon": "" }
+  "settings": { "page": "settings/NyxPage.qml", "label": "Nyx", "icon": "" },
+  "provides": {
+    "mascots": {
+      "overlay": "front/MascotsOverlay.qml",
+      "species": "mascots",
+      "cards": "notch"
+    }
+  }
 }

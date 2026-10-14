@@ -21,6 +21,7 @@ nyx/
   nyx.json             registry: name, path and author of every component
   plugin.json          equisdots plugin manifest (Plugins registry; toggle)
   settings/            its own settings page (Plugins → Nyx in the shell)
+  notch/               the shipped notch cards (defaults.json)
   front/               the "chrome" — island/notch window + control center
     MascotsOverlay.qml  per-screen island/notch window (positions, cursor +
                         event polling, moods, dock host, per-mascot popovers)
@@ -38,6 +39,27 @@ nyx/
 
 A species folder holds its `manifest.json` and its files (`entry`, optional
 `popover`, scripts, assets); `entry`/`popover` resolve relative to the folder.
+
+## Plugin integration (equisdots)
+
+Nyx ships as a plugin (standard: `equisdots/plugins` → `docs/plugins.md`). Its
+`plugin.json` declares what it contributes to the shell integration:
+
+```json
+"provides": {
+  "mascots": {
+    "overlay": "front/MascotsOverlay.qml",
+    "species": "mascots",
+    "cards": "notch"
+  }
+}
+```
+
+The shell resolves these through its plugin catalog (managed deploy or a user
+plugin): `overlay` fills the island wrapper, `species` and `cards` feed the
+discovery scan, and the user dirs (`~/.config/hypr/mascots/...`) still win on
+`id`. Other plugins may declare the same keys to extend the island without
+touching Nyx — their entries simply appear in the catalog.
 
 ## Settings (when `settingsPath` is set)
 

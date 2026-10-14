@@ -163,10 +163,14 @@ Item {
         widgetLauncher: function(id) {
             let exec = root.thingExec(id);
             if (exec !== "") { Quickshell.execDetached(["bash", "-c", exec]); return; }
-            Quickshell.execDetached([
+            let args = [
                 Quickshell.env("HOME") + "/.config/hypr/scripts/qs_manager.sh",
                 "open", String(id)
-            ]);
+            ];
+            // The "Settings" card (this plugin's default cards) opens the
+            // editor directly on Nyx's page.
+            if (String(id) === "bar-editor") args.push("nyx");
+            Quickshell.execDetached(args);
         }
     }
 

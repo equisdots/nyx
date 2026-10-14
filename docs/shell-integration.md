@@ -113,6 +113,8 @@ A card descriptor (`*.json`):
 - `exec` — a shell command run when the card is picked.
 - Without `exec`, the card opens the shell panel with that `id` through
   `qs_manager.sh open <id>`.
+- Nyx's own Settings card (`bar-editor`) opens the editor directly on Nyx's
+  page (`qs_manager.sh open bar-editor nyx`).
 - `enabled: false` hides a shipped card; `thumb` sets a preview image.
 - Nyx ships the default cards (`notch/defaults.json`, the 18 shell widgets);
   other provider plugins may add more.

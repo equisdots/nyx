@@ -27,6 +27,7 @@ Item {
     anchors.fill: parent
 
     property var bar: null
+    property var host: null   // injected SDK handle (equisdots/plugin-sdk)
 
     // Same defaults Nyx's front/MascotsOverlay.qml falls back to.
     property bool mEnabled: false

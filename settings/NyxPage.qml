@@ -3,8 +3,8 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
-import "../../../bar/edit"
-import "../../../../core"
+import qs.ui.bar.edit
+import qs.core
 import "../catalog"
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -28,6 +28,16 @@ Item {
 
     property var bar: null
     property var host: null   // injected SDK handle (equisdots/plugin-sdk)
+    // Settings scope: prefer the injected handle, fall back to the Config façade.
+    readonly property var _mascots: {
+        if (root.host && root.host.settings) return root.host.settings.section;
+        Config.rev;
+        return (Config.rawSettings && typeof Config.rawSettings.mascots === "object") ? Config.rawSettings.mascots : {};
+    }
+    function _writeMascots(m) {
+        if (root.host && root.host.settings) { root.host.settings.setMany(m); return; }
+        Config.setSetting("mascots", m);
+    }
 
     // Same defaults Nyx's front/MascotsOverlay.qml falls back to.
     property bool mEnabled: false
@@ -61,13 +71,12 @@ Item {
 
     // ── profiles ───────────────────────────────────────────────────────────
     readonly property var profilesObj: {
-        Config.rev;
-        let m = Config.rawSettings.mascots || {};
+        let m = root._mascots || {};
         return (m.profiles && typeof m.profiles === "object") ? m.profiles : {};
     }
     readonly property var profileNames: Object.keys(root.profilesObj)
     function currentBlock() {
-        let m = Config.rawSettings.mascots || {};
+        let m = root._mascots || {};
         let b = {};
         ["enabled", "species", "count", "size", "position", "appearance",
          "notchWidth", "notchHeight", "notchOffset", "notchReserve"].forEach(function (k) {
@@ -79,34 +88,34 @@ Item {
     }
     function saveProfile(name) {
         if (!name) return;
-        let m = Object.assign({}, Config.rawSettings.mascots || {});
+        let m = Object.assign({}, root._mascots || {});
         let p = Object.assign({}, root.profilesObj);
         p[name] = root.currentBlock();
         m.profiles = p;
-        Config.setSetting("mascots", m);
+        root._writeMascots(m);
     }
     function loadProfile(name) {
-        let m = Object.assign({}, Config.rawSettings.mascots || {});
+        let m = Object.assign({}, root._mascots || {});
         let block = root.profilesObj[name];
         if (!block) return;
         let next = Object.assign({}, block);
         next.profiles = m.profiles;
-        Config.setSetting("mascots", next);
+        root._writeMascots(next);
         root.syncFromConfig();
     }
     function deleteProfile(name) {
-        let m = Object.assign({}, Config.rawSettings.mascots || {});
+        let m = Object.assign({}, root._mascots || {});
         let p = Object.assign({}, root.profilesObj);
         delete p[name];
         m.profiles = p;
-        Config.setSetting("mascots", m);
+        root._writeMascots(m);
     }
 
     readonly property var flickable: body.item ? body.item.flickable : null
 
     function syncFromConfig() {
-        let s = (Config.rawSettings.mascots && typeof Config.rawSettings.mascots === "object")
-                ? Config.rawSettings.mascots : {};
+        let s = (root._mascots && typeof root._mascots === "object")
+                ? root._mascots : {};
         root.mEnabled = s.enabled === true;
         root.mSize = s.size !== undefined ? s.size : 1.0;
         let sp = (typeof s.species === "string") ? s.species : "flame";
@@ -152,9 +161,9 @@ Item {
     function flush() {
         let keys = Object.keys(root._pending);
         if (keys.length === 0) return;
-        let base = (Config.rawSettings.mascots && typeof Config.rawSettings.mascots === "object")
-                   ? Config.rawSettings.mascots : {};
-        Config.setSetting("mascots", Object.assign({}, base, root._pending));
+        let base = (root._mascots && typeof root._mascots === "object")
+                   ? root._mascots : {};
+        root._writeMascots(Object.assign({}, base, root._pending));
         root._pending = {};
     }
     // Nested "mascots.dock" commits (merged into the existing dock object).
@@ -167,10 +176,10 @@ Item {
     function flushDock() {
         let keys = Object.keys(root._pendingDock);
         if (keys.length === 0) return;
-        let base = (Config.rawSettings.mascots && typeof Config.rawSettings.mascots === "object")
-                   ? Config.rawSettings.mascots : {};
+        let base = (root._mascots && typeof root._mascots === "object")
+                   ? root._mascots : {};
         let dock = (base.dock && typeof base.dock === "object") ? base.dock : {};
-        Config.setSetting("mascots", Object.assign({}, base,
+        root._writeMascots(Object.assign({}, base,
             { dock: Object.assign({}, dock, root._pendingDock) }));
         root._pendingDock = {};
     }
@@ -184,10 +193,10 @@ Item {
     function flushWatcher() {
         let keys = Object.keys(root._pendingWatcher);
         if (keys.length === 0) return;
-        let base = (Config.rawSettings.mascots && typeof Config.rawSettings.mascots === "object")
-                   ? Config.rawSettings.mascots : {};
+        let base = (root._mascots && typeof root._mascots === "object")
+                   ? root._mascots : {};
         let watcher = (base.watcher && typeof base.watcher === "object") ? base.watcher : {};
-        Config.setSetting("mascots", Object.assign({}, base,
+        root._writeMascots(Object.assign({}, base,
             { watcher: Object.assign({}, watcher, root._pendingWatcher) }));
         root._pendingWatcher = {};
     }
@@ -241,7 +250,7 @@ Item {
     // ── per-species appearance (settings → mascots.options.<id>) ───────────
     // A species declares what it accepts in its manifest (`customizable`).
     function speciesOpts(id) {
-        let m = Config.rawSettings.mascots || {};
+        let m = root._mascots || {};
         return (m.options && m.options[id]) ? m.options[id] : {};
     }
     function speciesColor(id) {
@@ -268,7 +277,7 @@ Item {
     readonly property var colorRoles: ["", "text", "subtext0", "red", "green", "yellow", "blue", "mauve", "teal", "peach"]
     function patchSpeciesOpts(id, patch) {
         id = String(id);
-        let opts = Object.assign({}, (Config.rawSettings.mascots || {}).options || {});
+        let opts = Object.assign({}, (root._mascots || {}).options || {});
         let next = Object.assign({}, opts[id] || {}, patch);
         if (!next.color) delete next.color;
         if (typeof next.size !== "number" || Math.abs(next.size - 1.0) < 0.001) delete next.size;

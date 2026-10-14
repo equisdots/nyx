@@ -20,6 +20,7 @@ Hyprland (`hyprctl cursorpos`, socket2) and a Nerd Font.
 nyx/
   nyx.json             registry: name, path and author of every component
   plugin.json          equisdots plugin manifest (Plugins registry; toggle)
+  settings/            its own settings page (Plugins → Nyx in the shell)
   front/               the "chrome" — island/notch window + control center
     MascotsOverlay.qml  per-screen island/notch window (positions, cursor +
                         event polling, moods, dock host, per-mascot popovers)
@@ -39,6 +40,9 @@ A species folder holds its `manifest.json` and its files (`entry`, optional
 `popover`, scripts, assets); `entry`/`popover` resolve relative to the folder.
 
 ## Settings (when `settingsPath` is set)
+
+The plugin's own configuration UI is `settings/NyxPage.qml` (deployed to the
+shell's `ui/plugins/nyx/` and listed as **Plugins → Nyx**), which edits:
 
 | Key | Values | Default | Meaning |
 | --- | --- | --- | --- |

@@ -7,5 +7,5 @@
   "type": "shell",
   "compat": { "shell": ">=0.1.0" },
   "toggle": "mascots.enabled",
-  "settingsTab": "d_nyx"
+  "settings": { "page": "settings/NyxPage.qml", "label": "Nyx", "icon": "" }
 }

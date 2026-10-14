@@ -8,9 +8,9 @@
   "compat": { "shell": ">=0.1.0" },
   "toggle": "mascots.enabled",
   "settings": { "page": "settings/NyxPage.qml", "label": "Nyx", "icon": "" },
+  "host": "host/Mascots.qml",
   "provides": {
     "mascots": {
-      "overlay": "front/MascotsOverlay.qml",
       "species": "mascots",
       "cards": "notch"
     }

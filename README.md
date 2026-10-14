@@ -20,6 +20,8 @@ Hyprland (`hyprctl cursorpos`, socket2) and a Nerd Font.
 nyx/
   nyx.json             registry: name, path and author of every component
   plugin.json          equisdots plugin manifest (Plugins registry; toggle)
+  host/                the host adapter the shell mounts (ui/PluginHosts.qml)
+  catalog/             species/cards discovery (MascotsCatalog + qmldir + scan)
   settings/            its own settings page (Plugins → Nyx in the shell)
   notch/               the shipped notch cards (defaults.json)
   front/               the "chrome" — island/notch window + control center
@@ -42,24 +44,24 @@ A species folder holds its `manifest.json` and its files (`entry`, optional
 
 ## Plugin integration (equisdots)
 
-Nyx ships as a plugin (standard: `equisdots/plugins` → `docs/plugins.md`). Its
-`plugin.json` declares what it contributes to the shell integration:
+Nyx ships as a plugin (standard: `equisdots/plugins` → `docs/plugins.md`).
+Its manifest declares:
 
 ```json
-"provides": {
-  "mascots": {
-    "overlay": "front/MascotsOverlay.qml",
-    "species": "mascots",
-    "cards": "notch"
-  }
-}
+"host": "host/Mascots.qml",
+"provides": { "mascots": { "species": "mascots", "cards": "notch" } }
 ```
 
-The shell resolves these through its plugin catalog (managed deploy or a user
-plugin): `overlay` fills the island wrapper, `species` and `cards` feed the
-discovery scan, and the user dirs (`~/.config/hypr/mascots/...`) still win on
-`id`. Other plugins may declare the same keys to extend the island without
-touching Nyx — their entries simply appear in the catalog.
+- `host` — the shell mounts the adapter generically (`ui/PluginHosts.qml`);
+  it runs inside the shell tree, imports the core kit, renders the island and
+  publishes `frameObstacle` (per-screen rects) so the screen frame hugs it.
+- `provides.mascots.species` / `.cards` — this plugin's own extension rule:
+  any installed plugin may declare the same keys to extend the island; the
+  user dirs (`~/.config/hypr/mascots/...`) still win on `id`.
+- `settings.page` — the settings page above appears as Plugins → Nyx.
+
+See `docs/shell-integration.md` for the full shell-side contract
+(discovery, cards, editor).
 
 ## Settings (when `settingsPath` is set)
 

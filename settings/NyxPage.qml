@@ -5,6 +5,7 @@ import Quickshell
 import Quickshell.Io
 import "../../../bar/edit"
 import "../../../../core"
+import "../catalog"
 
 // ═══════════════════════════════════════════════════════════════════════════
 // NyxPage — the Nyx plugin's own settings page (equisdots plugin standard).

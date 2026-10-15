@@ -149,7 +149,7 @@ Item {
     // ── overlay ────────────────────────────────────────────────────────────
     MascotsOverlay {
         palette: root.host ? root.host.colors : null
-        settingsPath: root.host ? root.host.settingsPath : ""
+        settingsPath: root.host ? root.host.settingsFilePath : ""
         widgetStatePath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/quickshell/current_widget"
         dockWidgetName: "applauncher"
         widgetRectProvider: function(name, sw, sh, scale) {

@@ -1,0 +1,20 @@
+{
+  "id": "nyx",
+  "name": "Nyx",
+  "version": "0.1.0",
+  "author": "xscriptor",
+  "description": "Mascot island and control-center notch for the shell",
+  "type": "shell",
+  "compat": { "shell": ">=0.1.0" },
+  "toggle": "mascots.enabled",
+  "scope": "mascots",
+  "defaults": "defaults.json",
+  "settings": { "page": "settings/NyxPage.qml", "label": "Nyx", "icon": "" },
+  "host": "host/Mascots.qml",
+  "provides": {
+    "mascots": {
+      "species": "mascots",
+      "cards": "notch"
+    }
+  }
+}

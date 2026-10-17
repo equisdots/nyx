@@ -19,6 +19,11 @@ Hyprland (`hyprctl cursorpos`, socket2) and a Nerd Font.
 ```
 nyx/
   nyx.json             registry: name, path and author of every component
+  plugin.json          equisdots plugin manifest (Plugins registry; toggle)
+  host/                the host adapter the shell mounts (ui/PluginHosts.qml)
+  catalog/             species/cards discovery (MascotsCatalog + qmldir + scan)
+  settings/            its own settings page (Plugins → Nyx in the shell)
+  notch/               the shipped notch cards (defaults.json)
   front/               the "chrome" — island/notch window + control center
     MascotsOverlay.qml  per-screen island/notch window (positions, cursor +
                         event polling, moods, dock host, per-mascot popovers)
@@ -37,7 +42,31 @@ nyx/
 A species folder holds its `manifest.json` and its files (`entry`, optional
 `popover`, scripts, assets); `entry`/`popover` resolve relative to the folder.
 
+## Plugin integration (equisdots)
+
+Nyx ships as a plugin (standard: `equisdots/plugins` → `docs/plugins.md`).
+Its manifest declares:
+
+```json
+"host": "host/Mascots.qml",
+"provides": { "mascots": { "species": "mascots", "cards": "notch" } }
+```
+
+- `host` — the shell mounts the adapter generically (`ui/PluginHosts.qml`);
+  it runs inside the shell tree, imports the core kit, renders the island and
+  publishes `frameObstacle` (per-screen rects) so the screen frame hugs it.
+- `provides.mascots.species` / `.cards` — this plugin's own extension rule:
+  any installed plugin may declare the same keys to extend the island; the
+  user dirs (`~/.config/hypr/mascots/...`) still win on `id`.
+- `settings.page` — the settings page above appears as Plugins → Nyx.
+
+See `docs/shell-integration.md` for the full shell-side contract
+(discovery, cards, editor).
+
 ## Settings (when `settingsPath` is set)
+
+The plugin's own configuration UI is `settings/NyxPage.qml` (deployed to the
+shell's `ui/plugins/nyx/` and listed as **Plugins → Nyx**), which edits:
 
 | Key | Values | Default | Meaning |
 | --- | --- | --- | --- |
@@ -82,7 +111,7 @@ whose `id` matches a shipped one overrides it. Drop a file and restart the shell
 `entry` is a QML file next to the manifest; omit it to use a built-in kind
 (`flame` `cat` `dog` `eyes` `dots` `watcher`). The QML root may declare any of
 `mood`, `lookX`, `lookY`, `tint`, `crust`, `text`, `red`, `blinking`, `clock`,
-`palette`, `options` — the host binds them. Enable species in Settings → Mascots;
+`palette`, `options` — the host binds them. Enable species in Settings → Plugins → Nyx;
 each enabled species adds one mascot and the island width follows the count.
 
 `customizable` lists the option names a species accepts (`["color","size"]`);

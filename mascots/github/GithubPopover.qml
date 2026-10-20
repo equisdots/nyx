@@ -34,7 +34,9 @@ Item {
     readonly property string scriptPath: String(Qt.resolvedUrl("github_fetch.sh")).replace(/^file:\/\//, "")
 
     property int gridRows: 7
-    property int gridCols: 0
+    // A contributions year is 53 weeks: start at the final width so the panel
+    // does not jump when the fetched data lands mid-reveal.
+    property int gridCols: 53
     property var cells: []
     property string state: "loading"   // loading | ok | error
 

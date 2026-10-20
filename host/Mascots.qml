@@ -110,15 +110,25 @@ Item {
     // Live wallpaper preview for the Davincix card: davincix repaints
     // current_wallpaper.png whenever the background changes; watching the file
     // bumps wallpaperRev so the dock thumbnail reloads with a fresh URL.
+    // The host is injected after this file loads: keep the path empty until
+    // then (an empty FileView path makes QFileSystemWatcher complain) and
+    // debounce rewrites so the thumbnail is not loaded mid-write.
+    readonly property string wallpaperPreviewDir:
+        (root.host && root.host.cacheDir) ? String(root.host.cacheDir("wallpaper_picker") || "") : ""
     readonly property string wallpaperPreviewPath:
-        (root.host ? root.host.cacheDir("wallpaper_picker") : "") + "/current_wallpaper.png"
+        root.wallpaperPreviewDir !== "" ? (root.wallpaperPreviewDir + "/current_wallpaper.png") : ""
+    readonly property bool hasWallpaperPreview: root.wallpaperPreviewPath !== ""
     property int wallpaperRev: 0
 
-    FileView {
-        path: root.wallpaperPreviewPath
-        watchChanges: true
-        blockLoading: true
-        onFileChanged: root.wallpaperRev++
+    Timer { id: wallpaperDebounce; interval: 400; onTriggered: root.wallpaperRev++ }
+    Loader {
+        active: root.hasWallpaperPreview
+        sourceComponent: FileView {
+            path: root.wallpaperPreviewPath
+            watchChanges: true
+            blockLoading: true
+            onFileChanged: wallpaperDebounce.restart()
+        }
     }
 
     // ── notch cards ("things") ─────────────────────────────────────────────
@@ -133,7 +143,7 @@ Item {
             if (!x || x.enabled === false || !x.id) continue;
             let e = { id: String(x.id), label: x.label || String(x.id), icon: x.icon || "" };
             if (x.thumb) e.thumb = x.thumb;
-            if (String(x.id) === "wallpaper")
+            if (String(x.id) === "wallpaper" && root.hasWallpaperPreview)
                 e.thumb = "file://" + root.wallpaperPreviewPath + "?v=" + root.wallpaperRev;
             out.push(e);
         }

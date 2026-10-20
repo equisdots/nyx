@@ -14,8 +14,9 @@ import Quickshell.Io
 // + now-playing), quick actions, widget grid, footer (paging + dots).
 //
 // API: open / widgets / quickActions / palette / scaleUnit / accent / joined /
-//      columns / rows / panelWidth / showHero / showQuick / showSearch /
-//      title / launchRequested(id) / quickRequested(id) / closeRequested().
+//      columns / rows / panelWidth / unfoldUp / showHero / showQuick /
+//      showSearch / title / launchRequested(id) / quickRequested(id) /
+//      closeRequested().
 // ═══════════════════════════════════════════════════════════════════════════
 
 Item {
@@ -31,6 +32,7 @@ Item {
     property int columns: 5
     property int rows: 2
     property real panelWidth: 900
+    property bool unfoldUp: false
     property bool showHero: true
     property bool showQuick: true
     property bool showSearch: true
@@ -173,22 +175,25 @@ Item {
         id: bg
         width: dock.panelWidth
         height: Math.max(0, dock.panelHeight * dock.reveal)
-        topLeftRadius: dock.joined ? 0 : dock.s(18)
-        topRightRadius: dock.joined ? 0 : dock.s(18)
-        bottomLeftRadius: dock.s(18)
-        bottomRightRadius: dock.s(18)
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: dock.unfoldUp ? undefined : parent.top
+        anchors.bottom: dock.unfoldUp ? parent.bottom : undefined
+        topLeftRadius: (dock.joined && !dock.unfoldUp) ? 0 : dock.s(18)
+        topRightRadius: (dock.joined && !dock.unfoldUp) ? 0 : dock.s(18)
+        bottomLeftRadius: (dock.joined && dock.unfoldUp) ? 0 : dock.s(18)
+        bottomRightRadius: (dock.joined && dock.unfoldUp) ? 0 : dock.s(18)
         color: Qt.rgba(dock.cBase.r, dock.cBase.g, dock.cBase.b, dock.cGlassOn ? 0.9 : 1.0)
         border.width: 1
         border.color: Qt.alpha(dock.cSurface1, dock.joined ? 0.4 : 0.9)
     }
 
-    // ── content (unfolds downward via yScale) ───────────────────────────────
+    // ── content (revealed by the host clip; never scaled) ───────────────────
     Item {
         id: content
         width: dock.panelWidth
         height: dock.panelHeight
         opacity: dock.reveal
-        transform: Scale { origin.x: 0; origin.y: 0; yScale: dock.reveal }
+        y: dock.unfoldUp ? (dock.height - dock.panelHeight) : 0
 
         // Header ────────────────────────────────────────────────────────────
         Item {

@@ -215,7 +215,23 @@ Item {
     function obstacleFor(m, bar, width, height, k) {
         var pos = String(m.position || "top-center");
         var notch = String(m.appearance || "island").toLowerCase() === "notch";
-        var count = Math.max(1, Math.min(3, Math.round(Number(m.count) || 1)));
+        // MascotsOverlay resolves the lineup from `species`; `count` is only
+        // the legacy string mode. Mirror that here so the frame notch spans
+        // the real island instead of one mascot.
+        var species = m.species;
+        var count;
+        if (Array.isArray(species)) {
+            count = 0;
+            for (var si = 0; si < species.length; si++) {
+                var sid = species[si];
+                if (sid !== undefined && sid !== null && String(sid) !== "") count++;
+            }
+        } else if (String(species || "").toLowerCase() === "mixed") {
+            count = 3;
+        } else {
+            count = Math.round(Number(m.count) || 1);
+        }
+        count = Math.max(1, Math.min(8, count));
         var scale = Math.min(1.6, Math.max(0.6, Number(m.size) || 1));
         var ns = Number(m.notchHeight) || 0;
         var nw = Number(m.notchWidth) || 260;
@@ -231,7 +247,14 @@ Item {
         var notchW = notch
             ? Math.max(pillW + 20 * k, Math.min(width * 0.5, Math.max(80, nw) * k))
             : pillW;
+        var chromeW = notch ? notchW : pillW;
+        var chromeH = notch ? notchH : pillH;
+        var angle = (Number(m.angle) || 0) * Math.PI / 180;
+        // The frame carves the screen-space AABB of the rotated chrome.
+        var aw = Math.abs(Math.cos(angle)) * chromeW + Math.abs(Math.sin(angle)) * chromeH;
+        var ah = Math.abs(Math.sin(angle)) * chromeW + Math.abs(Math.cos(angle)) * chromeH;
         var off = nOff * k;
+        var sideMargin = 14 * k;
         var edgeMargin = (barBottom ? 14 : barThick + 14) * k;
 
         function along(total, span) {
@@ -242,27 +265,27 @@ Item {
 
         var o = { avoidReserve: true };
         if (pos.indexOf("top") !== -1) {
-            var at = along(width, notchW);
+            var at = along(width, aw);
             o.edge = "top"; o.a = at.a; o.b = at.b;
-            o.depth = notch ? (off + notchH) : (edgeMargin + pillH + off);
+            o.depth = notch ? (off + ah) : (edgeMargin + ah + off);
             return o;
         }
         if (pos.indexOf("bottom") !== -1) {
-            var ab = along(width, notchW);
+            var ab = along(width, aw);
             o.edge = "bottom"; o.a = ab.a; o.b = ab.b;
-            o.depth = height - (notch ? (off + notchH) : (edgeMargin + pillH + off));
+            o.depth = height - (notch ? (off + ah) : (edgeMargin + ah + off));
             return o;
         }
         if (pos.indexOf("left") !== -1) {
-            var al = along(height, notchH);
+            var al = along(height, ah);
             o.edge = "left"; o.a = al.a; o.b = al.b;
-            o.depth = notch ? (off + notchW) : (edgeMargin + pillW + off);
+            o.depth = notch ? (off + aw) : (sideMargin + aw + off);
             return o;
         }
         if (pos.indexOf("right") !== -1) {
-            var ar = along(height, notchH);
+            var ar = along(height, ah);
             o.edge = "right"; o.a = ar.a; o.b = ar.b;
-            o.depth = width - (notch ? (off + notchW) : (edgeMargin + pillW + off));
+            o.depth = width - (notch ? (off + aw) : (sideMargin + aw + off));
             return o;
         }
         return null;

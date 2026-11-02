@@ -46,6 +46,8 @@ Item {
     property int mCount: 3
     property string mPosition: "top-center"
     property string mAppearance: "island"
+    property real mAngle: 0
+    property string mScreen: "all"
     property real mNotchWidth: 260
     property real mNotchHeight: 0
     property real mNotchOffset: 0
@@ -62,6 +64,7 @@ Item {
     property real mWatcherSpeed: 1.0
     property bool mWatcherMoods: true
     property bool mWatcherEye: false
+    property bool mWatcherAnimate: false
     property string mProfileName: ""
     // Lineup mode: `mascots.species` is an array of enabled species ids (one
     // mascot each, in catalog order). When false, it is the legacy single
@@ -78,7 +81,7 @@ Item {
     function currentBlock() {
         let m = root._mascots || {};
         let b = {};
-        ["enabled", "species", "count", "size", "position", "appearance",
+        ["enabled", "species", "count", "size", "position", "appearance", "angle", "screen",
          "notchWidth", "notchHeight", "notchOffset", "notchReserve"].forEach(function (k) {
             if (m[k] !== undefined) b[k] = m[k];
         });
@@ -130,6 +133,8 @@ Item {
         root.mCount = Math.max(1, Math.min(3, Math.round(s.count !== undefined ? s.count : 3)));
         root.mPosition = (typeof s.position === "string" && s.position !== "") ? s.position : "top-center";
         root.mAppearance = (s.appearance === "notch") ? "notch" : "island";
+        root.mAngle = (typeof s.angle === "number") ? s.angle : 0;
+        root.mScreen = (s.screen === "focused") ? "focused" : "all";
         root.mNotchWidth = (typeof s.notchWidth === "number") ? s.notchWidth : 260;
         root.mNotchHeight = (typeof s.notchHeight === "number") ? s.notchHeight : 0;
         root.mNotchOffset = (typeof s.notchOffset === "number") ? s.notchOffset : 0;
@@ -148,6 +153,7 @@ Item {
         root.mWatcherSpeed = (typeof wt.speed === "number") ? wt.speed : 1.0;
         root.mWatcherMoods = wt.moods !== false;
         root.mWatcherEye = wt.eye === true;
+        root.mWatcherAnimate = wt.animate === true;
     }
     Component.onCompleted: root.syncFromConfig()
 
@@ -398,7 +404,7 @@ Item {
                     EditLabel {
                         bar: root.bar
                         width: parent.width
-                        text: "A small click-through island at the top of the screen: it fades away while the app launcher (SUPER+D) is open (the island becomes the dock) and when a widget covers it. The mascots' eyes follow the cursor and they react with random moods (angry, surprised, happy, sleepy) when windows or widgets open and close; they fall asleep when idle."
+                        text: "A small click-through island or notch: it fades away while the app launcher (SUPER+D) is open (the island becomes the dock) and when a widget covers it. The mascots' eyes follow the cursor and they react with random moods (angry, surprised, happy, sleepy) when windows or widgets open and close; they fall asleep when idle."
                         font.pixelSize: bar.s(11)
                         color: bar.colors.subtext0
                         wrapMode: Text.WordWrap
@@ -723,7 +729,7 @@ Item {
                             Layout.fillWidth: true
                             bar: root.bar
                             icon: ""
-                            label: "Island"
+                            label: "Pill"
                             active: root.mAppearance !== "notch"
                             onActivated: { root.mAppearance = "island"; root.set("appearance", "island"); }
                         }
@@ -739,12 +745,32 @@ Item {
                     EditLabel {
                         bar: root.bar
                         width: parent.width
-                        text: "Island is the floating pill. Notch snaps to the very top edge with a macOS-style silhouette (concave top fillets, rounded bottom, no coloured border) and is only available at the top. The widget dock still unfolds as a floating panel below and retracts the notch while it is open."
+                        text: "Pill is the floating island. Notch uses the macOS-style silhouette; it can sit on the top or bottom edge. The widget dock unfolds inward (downwards from the top, upwards from the bottom) and retracts the notch while it is open."
                         font.pixelSize: bar.s(11)
                         color: bar.colors.subtext0
                         wrapMode: Text.WordWrap
                     }
 
+                    EffectSlider {
+                        width: parent.width
+                        bar: root.bar
+                        icon: ""
+                        label: "Display angle"
+                        from: -180; to: 180; step: 15
+                        decimals: 0
+                        suffix: "°"
+                        accentColor: bar.colors.mauve
+                        value: root.mAngle
+                        onEdited: (v) => { root.mAngle = v; root.set("angle", v); }
+                    }
+                    EditLabel {
+                        bar: root.bar
+                        width: parent.width
+                        text: "0° keeps the horizontal pill. Use 90°/270° for a vertical pill on a side, or 180° for an inverted notch. Side mounting uses the centre-left / centre-right position buttons below."
+                        font.pixelSize: bar.s(11)
+                        color: bar.colors.subtext0
+                        wrapMode: Text.WordWrap
+                    }
                     EffectSlider {
                         visible: root.mAppearance === "notch"
                         width: parent.width
@@ -788,7 +814,7 @@ Item {
                         visible: root.mAppearance === "notch"
                         bar: root.bar
                         width: parent.width
-                        text: "Height 0 keeps the automatic height. Offset Y moves the notch up (negative) or down (positive); a negative value tucks the top fillets above the screen edge for a flatter top."
+                        text: "Height 0 keeps the automatic height. Offset Y moves the notch up (negative) or down (positive); it applies to the top edge. Bottom placement mirrors the silhouette automatically."
                         font.pixelSize: bar.s(11)
                         color: bar.colors.subtext0
                         wrapMode: Text.WordWrap
@@ -798,7 +824,7 @@ Item {
                         width: parent.width
                         bar: root.bar
                         icon: ""
-                        label: "Reserve top space"
+                        label: "Reserve edge space"
                         checked: root.mNotchReserve
                         onToggled: { root.mNotchReserve = !root.mNotchReserve; root.set("notchReserve", root.mNotchReserve); }
                     }
@@ -806,7 +832,44 @@ Item {
                         visible: root.mAppearance === "notch"
                         bar: root.bar
                         width: parent.width
-                        text: "Reserve top space keeps maximized windows clear of the notch (an exclusive zone, like real hardware). Turn it off to let windows slide underneath."
+                        text: "Reserve edge space keeps maximized windows clear of the notch on its top or bottom edge (an exclusive zone, like real hardware). Turn it off to let windows slide underneath."
+                        font.pixelSize: bar.s(11)
+                        color: bar.colors.subtext0
+                        wrapMode: Text.WordWrap
+                    }
+
+                    Text {
+                        text: "Screens"
+                        font.family: "Hack Nerd Font"
+                        font.weight: Font.Black
+                        font.pixelSize: bar.s(16)
+                        color: bar.colors.text
+                    }
+                    GridLayout {
+                        width: parent.width
+                        columns: 2
+                        columnSpacing: bar.s(10)
+                        OptionCard {
+                            Layout.fillWidth: true
+                            bar: root.bar
+                            icon: ""
+                            label: "All screens"
+                            active: root.mScreen !== "focused"
+                            onActivated: { root.mScreen = "all"; root.set("screen", "all"); }
+                        }
+                        OptionCard {
+                            Layout.fillWidth: true
+                            bar: root.bar
+                            icon: ""
+                            label: "Focused only"
+                            active: root.mScreen === "focused"
+                            onActivated: { root.mScreen = "focused"; root.set("screen", "focused"); }
+                        }
+                    }
+                    EditLabel {
+                        bar: root.bar
+                        width: parent.width
+                        text: "Focused only avoids one full-screen render surface per monitor; the island follows the monitor that has keyboard focus."
                         font.pixelSize: bar.s(11)
                         color: bar.colors.subtext0
                         wrapMode: Text.WordWrap
@@ -857,7 +920,7 @@ Item {
                     EditLabel {
                         bar: root.bar
                         width: parent.width
-                        text: "The island moves to the chosen corner/edge; the widget dock unfolds inward (downwards, or upwards when the island sits at the bottom)."
+                        text: "Corners, centre edges and side centres are supported. The dock unfolds inward; with a side position, rotate the pill with Display angle (90° / 270°) to make it vertical."
                         font.pixelSize: bar.s(11)
                         color: bar.colors.subtext0
                         wrapMode: Text.WordWrap
@@ -1107,6 +1170,22 @@ Item {
                         accentColor: bar.colors.mauve
                         value: root.mWatcherSpeed
                         onEdited: (v) => { root.mWatcherSpeed = v; root.setWatcher("speed", v); }
+                    }
+                    ToggleCard {
+                        width: parent.width
+                        bar: root.bar
+                        icon: ""
+                        label: "Typewriter animation"
+                        checked: root.mWatcherAnimate
+                        onToggled: { root.mWatcherAnimate = !root.mWatcherAnimate; root.setWatcher("animate", root.mWatcherAnimate); }
+                    }
+                    EditLabel {
+                        bar: root.bar
+                        width: parent.width
+                        text: "Off by default: the clock still updates once per second, but skips the per-frame reveal animation that damages the full-width notch surface."
+                        font.pixelSize: bar.s(11)
+                        color: bar.colors.subtext0
+                        wrapMode: Text.WordWrap
                     }
                     ToggleCard {
                         width: parent.width

@@ -5,24 +5,159 @@
   "license": "MIT",
   "version": "0.1.0",
   "components": [
-    { "name": "MascotsOverlay", "path": "front/MascotsOverlay.qml", "type": "front", "author": "xscriptor", "description": "Per-screen island/notch window: positions, cursor + event polling, moods, dock host and per-mascot popovers." },
-    { "name": "MascotDock", "path": "front/MascotDock.qml", "type": "front", "author": "xscriptor", "description": "Control center: search, hero (clock + now-playing), quick actions, widget grid, tabs." },
-    { "name": "Mascot", "path": "mascots/Mascot.qml", "type": "host", "author": "xscriptor", "description": "One mascot instance: loads the species QML (entry), owns bob / blink / moods." },
-    { "name": "InfoMascot", "path": "mascots/InfoMascot.qml", "type": "base", "author": "xscriptor", "description": "Base for the info species: run a command on a timer, render a glyph + value (colour / size options)." },
-    { "name": "MascotFaceEyes", "path": "mascots/MascotFaceEyes.qml", "type": "support", "author": "xscriptor", "description": "Shared face eyes/brows (flame / cat / dog)." },
-    { "name": "MascotMetrics", "path": "mascots/MascotMetrics.js", "type": "support", "author": "xscriptor", "description": "Vendored scale helpers (no shell imports)." },
-    { "name": "flame",   "path": "mascots/flame/manifest.json",   "type": "species", "author": "xscriptor", "description": "Default little fire with a mouth." },
-    { "name": "cat",     "path": "mascots/cat/manifest.json",     "type": "species", "author": "xscriptor", "description": "Pointy ears, stripes, whiskers and a pink nose." },
-    { "name": "dog",     "path": "mascots/dog/manifest.json",     "type": "species", "author": "xscriptor", "description": "Floppy ears, eye patch, muzzle and tongue when happy." },
-    { "name": "eyes",    "path": "mascots/eyes/manifest.json",    "type": "species", "author": "xscriptor", "description": "Eyes-only: a pair of manga eyes with expressions." },
-    { "name": "dots",    "path": "mascots/dots/manifest.json",    "type": "species", "author": "xscriptor", "description": "Colored dots that trail the cursor." },
-    { "name": "battery", "path": "mascots/battery/manifest.json", "type": "species", "author": "xscriptor", "description": "Battery level and charge state." },
-    { "name": "cpu",     "path": "mascots/cpu/manifest.json",     "type": "species", "author": "xscriptor", "description": "CPU utilisation." },
-    { "name": "memory",  "path": "mascots/memory/manifest.json",  "type": "species", "author": "xscriptor", "description": "Used RAM percentage." },
-    { "name": "wifi",    "path": "mascots/wifi/manifest.json",    "type": "species", "author": "xscriptor", "description": "Connected Wi-Fi signal strength." },
-    { "name": "volume",  "path": "mascots/volume/manifest.json",  "type": "species", "author": "xscriptor", "description": "Audio sink volume and mute." },
-    { "name": "temperature", "path": "mascots/temperature/manifest.json", "type": "species", "author": "xscriptor", "description": "SoC thermal zone." },
-    { "name": "watcher", "path": "mascots/watcher/manifest.json", "type": "species", "author": "xscriptor", "description": "Digital clock retyped with a typewriter cursor." },
-    { "name": "github",  "path": "mascots/github/manifest.json",  "type": "species", "author": "xscriptor", "description": "Contribution heatmap popover; the octocat opens the graph." }
+    {
+      "name": "MascotsOverlay",
+      "path": "front/MascotsOverlay.qml",
+      "type": "front",
+      "author": "xscriptor",
+      "description": "Overlay root: one shared cursor/event/settings reader plus a per-screen island/notch window with position, angle, moods and dock host."
+    },
+    {
+      "name": "MascotDock",
+      "path": "front/MascotDock.qml",
+      "type": "front",
+      "author": "xscriptor",
+      "description": "Control center: search, hero (clock + now-playing), quick actions, widget grid, tabs."
+    },
+    {
+      "name": "Mascot",
+      "path": "mascots/Mascot.qml",
+      "type": "host",
+      "author": "xscriptor",
+      "description": "One mascot instance: loads the species QML (entry), owns bob / blink / moods."
+    },
+    {
+      "name": "InfoMascot",
+      "path": "mascots/InfoMascot.qml",
+      "type": "base",
+      "author": "xscriptor",
+      "description": "Base for the info species: run a command on a timer, render a glyph + value (colour / size options)."
+    },
+    {
+      "name": "MascotFaceEyes",
+      "path": "mascots/MascotFaceEyes.qml",
+      "type": "support",
+      "author": "xscriptor",
+      "description": "Shared face eyes/brows (flame / cat / dog)."
+    },
+    {
+      "name": "MascotMetrics",
+      "path": "mascots/MascotMetrics.js",
+      "type": "support",
+      "author": "xscriptor",
+      "description": "Vendored scale helpers (no shell imports)."
+    },
+    {
+      "name": "flame",
+      "path": "mascots/flame/manifest.json",
+      "type": "species",
+      "author": "xscriptor",
+      "description": "Default little fire with a mouth."
+    },
+    {
+      "name": "cat",
+      "path": "mascots/cat/manifest.json",
+      "type": "species",
+      "author": "xscriptor",
+      "description": "Pointy ears, stripes, whiskers and a pink nose."
+    },
+    {
+      "name": "dog",
+      "path": "mascots/dog/manifest.json",
+      "type": "species",
+      "author": "xscriptor",
+      "description": "Floppy ears, eye patch, muzzle and tongue when happy."
+    },
+    {
+      "name": "eyes",
+      "path": "mascots/eyes/manifest.json",
+      "type": "species",
+      "author": "xscriptor",
+      "description": "Eyes-only: a pair of manga eyes with expressions."
+    },
+    {
+      "name": "dots",
+      "path": "mascots/dots/manifest.json",
+      "type": "species",
+      "author": "xscriptor",
+      "description": "Colored dots that trail the cursor."
+    },
+    {
+      "name": "battery",
+      "path": "mascots/battery/manifest.json",
+      "type": "species",
+      "author": "xscriptor",
+      "description": "Battery level and charge state."
+    },
+    {
+      "name": "cpu",
+      "path": "mascots/cpu/manifest.json",
+      "type": "species",
+      "author": "xscriptor",
+      "description": "CPU utilisation."
+    },
+    {
+      "name": "memory",
+      "path": "mascots/memory/manifest.json",
+      "type": "species",
+      "author": "xscriptor",
+      "description": "Used RAM percentage."
+    },
+    {
+      "name": "wifi",
+      "path": "mascots/wifi/manifest.json",
+      "type": "species",
+      "author": "xscriptor",
+      "description": "Connected Wi-Fi signal strength."
+    },
+    {
+      "name": "volume",
+      "path": "mascots/volume/manifest.json",
+      "type": "species",
+      "author": "xscriptor",
+      "description": "Audio sink volume and mute."
+    },
+    {
+      "name": "temperature",
+      "path": "mascots/temperature/manifest.json",
+      "type": "species",
+      "author": "xscriptor",
+      "description": "SoC thermal zone."
+    },
+    {
+      "name": "watcher",
+      "path": "mascots/watcher/manifest.json",
+      "type": "species",
+      "author": "xscriptor",
+      "description": "Digital clock retyped with a typewriter cursor."
+    },
+    {
+      "name": "github",
+      "path": "mascots/github/manifest.json",
+      "type": "species",
+      "author": "xscriptor",
+      "description": "Contribution heatmap popover; the octocat opens the graph."
+    },
+    {
+      "name": "MascotsCatalog",
+      "path": "catalog/MascotsCatalog.qml",
+      "type": "catalog",
+      "author": "xscriptor",
+      "description": "Discover species and notch cards from provider dirs and user overrides."
+    },
+    {
+      "name": "Mascots",
+      "path": "host/Mascots.qml",
+      "type": "host",
+      "author": "xscriptor",
+      "description": "Plugin host adapter: injects palette/settings/widgets and publishes frameObstacle."
+    },
+    {
+      "name": "NyxPage",
+      "path": "settings/NyxPage.qml",
+      "type": "settings",
+      "author": "xscriptor",
+      "description": "Plugins -> Nyx editor: species lineup, appearance, angle, screen scope, dock and watcher."
+    }
   ]
 }

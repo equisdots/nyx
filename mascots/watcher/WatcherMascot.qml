@@ -33,6 +33,7 @@ Item {
         (typeof watcher.options.speed === "number") ? watcher.options.speed : 1.0))
     readonly property bool optMoods: watcher.options.moods !== false
     readonly property bool optEye: watcher.options.eye === true
+    readonly property bool optAnimate: watcher.options.animate === true
     readonly property string optAccent: (watcher.options.accent === true) ? "accent" : "tint"
 
     readonly property real fs: Math.max(8, Math.round(watcher.height * 0.44))
@@ -47,7 +48,9 @@ Item {
     function pad(n) { return (n < 10 ? "0" : "") + n; }
 
     Timer {
-        interval: 250
+        // The clock only changes once per second; 250 ms was four times more
+        // wakeups than the seconds field can use, multiplied by every monitor.
+        interval: 1000
         repeat: true
         running: watcher.visible
         onTriggered: watcher.tick()
@@ -60,9 +63,9 @@ Item {
         let H = watcher.pad(h);
         let M = watcher.pad(d.getMinutes());
         let S = watcher.pad(d.getSeconds());
-        if (fH.value !== H) fH.setValue(H, true);
-        if (fM.value !== M) fM.setValue(M, true);
-        if (watcher.optSeconds && fS.value !== S) fS.setValue(S, true);
+        if (fH.value !== H) fH.setValue(H, watcher.optAnimate);
+        if (fM.value !== M) fM.setValue(M, watcher.optAnimate);
+        if (watcher.optSeconds && fS.value !== S) fS.setValue(S, watcher.optAnimate);
         watcher.secTick = d.getSeconds();
     }
 

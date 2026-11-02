@@ -12,9 +12,15 @@
 
 </div>
 
-Never imports the shell core: the palette, the settings path and the live data
-are injected, and the only runtime requirements are Quickshell (Wayland),
-Hyprland (`hyprctl cursorpos`, socket2) and a Nerd Font.
+The palette, the settings path and the live data are injected. The front files
+may import `qs.core` for the optional `Theme`/`LiquidGlass`; the only runtime
+requirements are Quickshell (Wayland), Hyprland (`hyprctl cursorpos`, socket2)
+and a Nerd Font.
+
+The overlay is one object per shell with one cursor poller, one socket2 reader,
+one settings reader and one widget-state reader; the per-screen `PanelWindow`
+delegates share that state. Do not move those services back into the delegate:
+that is what multiplied polling by the number of monitors.
 
 ```
 nyx/
@@ -25,8 +31,9 @@ nyx/
   settings/            its own settings page (Plugins → Nyx in the shell)
   notch/               the shipped notch cards (defaults.json)
   front/               the "chrome" — island/notch window + control center
-    MascotsOverlay.qml  per-screen island/notch window (positions, cursor +
-                        event polling, moods, dock host, per-mascot popovers)
+    MascotsOverlay.qml  overlay root (shared cursor/event/settings readers) +
+                        one island/notch window per screen (positions, angle,
+                        moods, dock host, per-mascot popovers)
     MascotDock.qml      control center: search, hero, quick actions, grid, tabs
   mascots/             species, one folder each + the shared host/base
     Mascot.qml          host: loads the species QML (entry), bob / blink / moods
@@ -74,12 +81,14 @@ shell's `ui/plugins/nyx/` and listed as **Plugins → Nyx**), which edits:
 | `mascots.species` | id or `[id, …]` | `flame` | look: one id for every mascot (or `mixed`), or an **array** = one mascot per id (the lineup). ids come from the discovered catalog |
 | `mascots.count` | 1..8 | `3` | mascots in the island (string mode only; array mode uses the lineup length) |
 | `mascots.size` | 0.6..1.6 | `1.0` | mascot scale |
-| `mascots.position` | `top-left` … `bottom-right` | `top-center` | island position; the dock unfolds toward the screen centre (up when the island is at the bottom) |
-| `mascots.appearance` | `island` `notch` | `island` | `notch` snaps to the top edge with a macOS-style silhouette (no coloured border); dock still floats |
+| `mascots.position` | `top-*`, `center-*`, `bottom-*` (9 slots) | `top-center` | island position; the dock unfolds toward the screen centre. `center-left` / `center-right` are the side mounts |
+| `mascots.appearance` | `island` (Pill) `notch` | `island` | Pill is the floating island; Notch uses the macOS-style silhouette and supports the top and bottom edges |
+| `mascots.angle` | degrees, -180…180 | `0` | visual rotation of the chrome; use 90/270 for a vertical pill on a side or 180 for an inverted notch |
+| `mascots.screen` | `all` `focused` | `focused` | `focused` renders one surface and follows keyboard focus; `all` mounts one surface per monitor |
 | `mascots.notchWidth` | px (design units) | `260` | notch width; clamped to fit the mascots and to half the screen |
 | `mascots.notchHeight` | px (design units) | `0` | notch height; `0` = automatic (mascot height + padding) |
 | `mascots.notchOffset` | px (design units) | `0` | vertical offset; negative tucks the notch up into the screen edge |
-| `mascots.notchReserve` | bool | `true` | in notch mode, reserve the top strip so maximized windows clear it (exclusive zone) |
+| `mascots.notchReserve` | bool | `true` | in notch mode, reserve the top or bottom strip so maximized windows clear it (exclusive zone) |
 | `mascots.dock.size` | `compact` `medium` `large` `wide` | `large` | control-center panel width preset |
 | `mascots.dock.width` | px (design units) | `0` | explicit panel width (`0` = use the preset) |
 | `mascots.dock.style` | `floating` `joined` | `floating` | `joined` welds the panel under the notch (notch widens + squares off) |
@@ -91,9 +100,24 @@ shell's `ui/plugins/nyx/` and listed as **Plugins → Nyx**), which edits:
 | `mascots.watcher.speed` | number | `1.0` | typewriter speed multiplier |
 | `mascots.watcher.moods` | bool | `true` | mood-driven effects (angry red, sleepy dim, happy bounce) |
 | `mascots.watcher.eye` | bool | `false` | little tracking eye next to the clock |
+| `mascots.watcher.animate` | bool | `false` | per-second typewriter reveal; off by default because it damages the full-width notch surface |
 | `mascots.profiles` | object | `{}` | named presets of the whole mascots block (saved in the editor) |
 | `uiScale` | number | `1.0` | extra user scale |
 | `bar.position` / `bar.thickness` | string / px | `top` / 48 | island margin below the bar band |
+
+## Performance notes
+
+- The root owns **one** `hyprctl cursorpos` poller at 5 Hz, **one** socket2
+  reader, **one** settings reader and **one** widget-state reader. The
+  per-screen delegates only render.
+- Eye tracking runs at 10 Hz and only while the pointer is moving within 700
+  design pixels of the chrome; the Watcher clock wakes once per second. Its
+  typewriter reveal is opt-in (`mascots.watcher.animate`), because the
+  per-frame damage on a full-width notch was the largest remaining cost.
+- `mascots.screen: "focused"` is the default for multi-monitor cost control;
+  `"all"` is available when the island must be identical on every display.
+- `notchReserve` creates an exclusive zone; keep it enabled only for Notch and
+  only when the space matters.
 
 ## Extending: species & notch cards
 
@@ -102,7 +126,7 @@ whose `id` matches a shipped one overrides it. Drop a file and restart the shell
 (or call `MascotsCatalog.refresh()` in the equisdots shell) to pick it up.
 
 **Species** — `~/.config/hypr/mascots/species/*.json`
-(shipped: `mascots/species.json`):
+(shipped: one `mascots/<id>/manifest.json` per species):
 
 ```json
 { "id": "moon", "label": "Moon", "icon": "󰽦", "entry": "Moon.qml", "order": 100 }
@@ -146,12 +170,12 @@ and `"thumb"` for a preview image.
 
 `MascotsOverlay` exposes `enabled`, `species` (string or array), `mascotCatalog`,
 `count`, `size`, `uiScale`,
-`position`, `barPosition`, `barThickness`, `appearance`, `notchWidth`,
+`position`, `barPosition`, `barThickness`, `appearance`, `angle`, `notchWidth`,
 `notchHeight`, `notchOffset`, `notchReserve`, `dockSize`, `dockWidth`,
 `dockStyle`, `dockColumns`, `dockRows`, `dockShowHero`, `dockShowQuick`,
 `dockShowSearch`, `quickActions`, `quickHandler`, `stats`, `favorites`,
 `watcherFormat`, `watcherSeconds`, `watcherSpeed`, `watcherMoods`,
-`watcherEye`, `palette`, `settingsPath`,
+`watcherEye`, `watcherAnimate`, `palette`, `settingsPath`,
 `widgetStatePath`, `dockWidgetName`, `widgetRectProvider`, `widgetList` and
 `widgetLauncher`. The palette object needs `base`, `surface1`, `text`, `crust`,
 `red`, `yellow`, `green`, `blue`, `mauve` (colors) and `glassOn` (bool); a
@@ -179,5 +203,7 @@ Item {
 }
 ```
 
-The overlay is a click-through layer surface (`qs-mascots`, mask 0x0), one per
-screen, and it never captures input.
+The overlay is a click-through layer surface (`qs-mascots`) with an input mask
+limited to the chrome and an open panel; it never captures input outside those
+regions. With `mascots.screen: "focused"` there is one surface, otherwise one
+per screen.

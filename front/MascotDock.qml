@@ -1,13 +1,15 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import qs.core
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MascotDock — the control-center panel that unfolds from the mascot notch.
 //
-// Self-contained: no shell imports. The host feeds `widgets` (the launcher
+// Self-contained data contract: the host feeds `widgets` (the launcher
 // grid), `quickActions` (shortcut buttons) and the palette; this component
-// only draws, searches, pages and emits the chosen ids. Now-playing comes from
+// only draws, searches, pages and emits the chosen ids. The one shell import is
+// the optional Theme/LiquidGlass used for the panel background; now-playing comes from
 // `playerctl` and degrades silently when it is missing.
 //
 // Sections (top to bottom): header (title + search + close), hero (clock/date
@@ -182,9 +184,30 @@ Item {
         topRightRadius: (dock.joined && !dock.unfoldUp) ? 0 : dock.s(18)
         bottomLeftRadius: (dock.joined && dock.unfoldUp) ? 0 : dock.s(18)
         bottomRightRadius: (dock.joined && dock.unfoldUp) ? 0 : dock.s(18)
-        color: Qt.rgba(dock.cBase.r, dock.cBase.g, dock.cBase.b, dock.cGlassOn ? 0.9 : 1.0)
+        color: Theme.liquidGlass ? "transparent"
+            : Qt.rgba(dock.cBase.r, dock.cBase.g, dock.cBase.b, dock.cGlassOn ? 0.9 : 1.0)
         border.width: 1
         border.color: Qt.alpha(dock.cSurface1, dock.joined ? 0.4 : 0.9)
+
+        LiquidGlass {
+            anchors.fill: parent
+            enabled: Theme.liquidGlass
+            screenPosOverride: {
+                const p = bg.mapToItem(null, 0, 0);
+                return Qt.vector2d(p.x, p.y);
+            }
+            topLeftRadius: dock.s(18)
+            topRightRadius: dock.s(18)
+            bottomLeftRadius: dock.s(18)
+            bottomRightRadius: dock.s(18)
+            tintColor: "#101018"
+            tintAmount: 0.38
+            interiorShade: 0.38
+            bezel: Math.max(8, Math.min(20, Math.min(width, height) * 0.25))
+            frost: Math.max(6, Math.min(16, Math.min(width, height) * 0.20))
+            rim: 0.95
+        }
+
     }
 
     // ── content (revealed by the host clip; never scaled) ───────────────────

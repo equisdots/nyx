@@ -3,7 +3,9 @@ import QtQuick.Shapes
 import QtQml
 import Quickshell
 import Quickshell.Io
+import Quickshell.Hyprland
 import Quickshell.Wayland
+import qs.core
 import "../mascots"
 import "../mascots/MascotMetrics.js" as Metrics
 
@@ -14,10 +16,10 @@ import "../mascots/MascotMetrics.js" as Metrics
 // MascotDock) form a self-contained module that never imports the shell: the
 // palette, the settings path and the widget hooks are injected.
 //
-// Public API (per screen):
+// Public API (shared by every screen; the root owns the readers):
 //   enabled            master switch (also read from the settings file)
 //   species            "flame" | "cat" | "dog" | "eyes" | "mixed"
-//   count              1..3 mascots in the island
+//   count              1..8 mascots in the island
 //   size               0.6..1.6 mascot scale
 //   uiScale            extra user scale (the shell's uiScale)
 //   position           top-left | top-center | top-right | center-left |
@@ -25,7 +27,9 @@ import "../mascots/MascotMetrics.js" as Metrics
 //                      bottom-right (the dock unfolds toward the screen centre)
 //   barPosition        "top" | "bottom" | other (edge margin for the island)
 //   barThickness       bar thickness in px (edge margin)
-//   appearance         "island" | "notch" (notch snaps to the top edge)
+//   appearance         "island" (Pill) | "notch" (top or bottom edge)
+//   angle              visual rotation in degrees (-180..180)
+//   screenMode         "all" | "focused"
 //   notchWidth         notch width in design px (clamped to fit the mascots)
 //   notchHeight        notch height in design px (0 = automatic)
 //   notchOffset        vertical offset in design px (may be negative)
@@ -61,9 +65,8 @@ import "../mascots/MascotMetrics.js" as Metrics
 //     surface stays click-through through a two-region mask.
 // ═══════════════════════════════════════════════════════════════════════════
 
-Variants {
+Scope {
     id: root
-    model: Quickshell.screens
 
     // ── public API ─────────────────────────────────────────────────────────
     property bool enabled: false
@@ -97,12 +100,14 @@ Variants {
     property real watcherSpeed: 1.0
     property bool watcherMoods: true
     property bool watcherEye: false
+    property bool watcherAnimate: false
     readonly property var watcherOptions: ({
         format: root.watcherFormat,
         seconds: root.watcherSeconds,
         speed: root.watcherSpeed,
         moods: root.watcherMoods,
-        eye: root.watcherEye
+        eye: root.watcherEye,
+        animate: root.watcherAnimate
     })
     property var palette: ({
         base: "#1e1e2e", surface1: "#45475a", text: "#cdd6f4",
@@ -124,7 +129,179 @@ Variants {
     // mascot through the `options` contract (color, size, …).
     property var speciesOptions: ({})
 
-    delegate: Component {
+    // ── shared state (one per shell, not one per screen) ──────────────────
+    // Every screen used to own its own settings reader, cursor poller and
+    // socket2 client. With a multi-monitor setup that meant 4x cat/FileView,
+    // 4x hyprctl every 120 ms and 4x socat, which kept the shell busy even
+    // when the mascots were idle. These services now live once on the root.
+    property real angle: 0
+    property string screenMode: "all"
+    property real cursorX: 0
+    property real cursorY: 0
+    property bool cursorValid: false
+    property bool cursorMoving: false
+    property real lastCursorX: 0
+    property real lastCursorY: 0
+    property string currentWidget: ""
+    signal windowEvent()
+    signal activeWindowEvent()
+
+    function updateCursor(line) {
+        let p = String(line).split(",");
+        if (p.length < 2) return;
+        let x = parseFloat(p[0]);
+        let y = parseFloat(p[1]);
+        if (isNaN(x) || isNaN(y)) return;
+        if (root.cursorValid && (Math.abs(x - root.lastCursorX) > 0.5
+                || Math.abs(y - root.lastCursorY) > 0.5)) {
+            root.cursorMoving = true;
+            cursorIdle.restart();
+        }
+        root.cursorX = x;
+        root.cursorY = y;
+        root.lastCursorX = x;
+        root.lastCursorY = y;
+        root.cursorValid = true;
+    }
+    Timer {
+        id: cursorIdle
+        interval: 1200
+        onTriggered: root.cursorMoving = false
+    }
+
+    function handleEvent(line) {
+        let s = String(line);
+        if (s.indexOf("openwindow>>") === 0 || s.indexOf("closewindow>>") === 0) {
+            root.windowEvent();
+        } else if (s.indexOf("activewindow>>") === 0) {
+            root.activeWindowEvent();
+        }
+    }
+
+    function applySettings(txt) {
+        try {
+            let p = JSON.parse(txt);
+            let m = (p.mascots && typeof p.mascots === "object") ? p.mascots : {};
+            if (m.enabled !== undefined) root.enabled = m.enabled === true;
+            if (m.size !== undefined) root.size = m.size;
+            if (m.species !== undefined) root.species = m.species;
+            if (m.count !== undefined) root.count = m.count;
+            root.speciesOptions = (m.options && typeof m.options === "object") ? m.options : {};
+            if (m.position !== undefined) root.position = m.position;
+            if (m.appearance !== undefined) root.appearance = String(m.appearance);
+            if (m.angle !== undefined) root.angle = Number(m.angle) || 0;
+            if (m.screen !== undefined) root.screenMode = String(m.screen);
+            if (m.notchWidth !== undefined) root.notchWidth = m.notchWidth;
+            if (m.notchHeight !== undefined) root.notchHeight = m.notchHeight;
+            if (m.notchOffset !== undefined) root.notchOffset = m.notchOffset;
+            if (m.notchReserve !== undefined) root.notchReserve = m.notchReserve === true;
+            let d = (m.dock && typeof m.dock === "object") ? m.dock : {};
+            if (d.size !== undefined) root.dockSize = String(d.size);
+            if (d.width !== undefined) root.dockWidth = d.width;
+            if (d.style !== undefined) root.dockStyle = String(d.style);
+            if (d.columns !== undefined) root.dockColumns = Math.max(2, Math.min(8, Math.round(d.columns)));
+            if (d.rows !== undefined) root.dockRows = Math.max(1, Math.min(4, Math.round(d.rows)));
+            if (d.hero !== undefined) root.dockShowHero = d.hero === true;
+            if (d.quick !== undefined) root.dockShowQuick = d.quick === true;
+            if (d.search !== undefined) root.dockShowSearch = d.search === true;
+            let w = (m.watcher && typeof m.watcher === "object") ? m.watcher : {};
+            if (w.format !== undefined) root.watcherFormat = String(w.format);
+            if (w.seconds !== undefined) root.watcherSeconds = w.seconds === true;
+            if (w.speed !== undefined) root.watcherSpeed = w.speed;
+            if (w.moods !== undefined) root.watcherMoods = w.moods === true;
+            if (w.eye !== undefined) root.watcherEye = w.eye === true;
+            if (w.animate !== undefined) root.watcherAnimate = w.animate === true;
+            if (p.uiScale !== undefined) root.uiScale = p.uiScale;
+            let b = p.bar || {};
+            if (b.position) root.barPosition = b.position;
+            if (b.thickness) root.barThickness = b.thickness;
+        } catch (e) {}
+    }
+
+    // One cursor poller for the whole shell; 5 Hz is plenty for looking eyes.
+    Process {
+        id: cursorProc
+        command: ["bash", "-c", "p=$PPID; while kill -0 \"$p\" 2>/dev/null; do hyprctl cursorpos 2>/dev/null; sleep 0.2; done"]
+        running: root.enabled
+        stdout: SplitParser { onRead: data => root.updateCursor(data) }
+    }
+
+    // One socket2 reader for the whole shell.
+    Process {
+        id: eventsProc
+        command: ["bash", "-c",
+            "SOCK=\"${XDG_RUNTIME_DIR:-/tmp}/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock\"; " +
+            "p=$PPID; while kill -0 \"$p\" 2>/dev/null; do socat -u UNIX-CONNECT:$SOCK - 2>/dev/null; sleep 0.5; done"]
+        running: root.enabled
+        stdout: SplitParser { onRead: data => root.handleEvent(data) }
+    }
+
+    // One settings reader and one widget-state reader for the whole shell.
+    Loader {
+        active: root.settingsPath !== ""
+        sourceComponent: settingsAdapter
+    }
+    Component {
+        id: settingsAdapter
+        Item {
+            Process {
+                id: settingsCat
+                command: ["cat", root.settingsPath]
+                running: true
+                stdout: StdioCollector {
+                    onStreamFinished: root.applySettings(this.text)
+                }
+            }
+            FileView {
+                path: root.settingsPath
+                watchChanges: true
+                blockLoading: true
+                onFileChanged: settingsCat.running = true
+            }
+        }
+    }
+
+    Loader {
+        active: root.widgetStatePath !== ""
+        sourceComponent: widgetAdapter
+    }
+    Component {
+        id: widgetAdapter
+        Item {
+            Process {
+                id: widgetCat
+                command: ["cat", root.widgetStatePath]
+                running: false
+                stdout: StdioCollector {
+                    onStreamFinished: root.currentWidget = this.text.trim()
+                }
+            }
+            FileView {
+                path: root.widgetStatePath
+                watchChanges: true
+                blockLoading: true
+                onFileChanged: widgetCat.running = true
+            }
+            Component.onCompleted: widgetCat.running = true
+        }
+    }
+
+    // `focused` keeps one full render surface instead of one per monitor.
+    readonly property var activeScreens: {
+        if (root.screenMode !== "focused") return Quickshell.screens;
+        let m = Hyprland.focusedMonitor;
+        if (!m) return Quickshell.screens.length > 0 ? [Quickshell.screens[0]] : [];
+        let out = [];
+        for (let i = 0; i < Quickshell.screens.length; i++) {
+            if (Quickshell.screens[i].name === m.name) out.push(Quickshell.screens[i]);
+        }
+        return out.length > 0 ? out : [Quickshell.screens[0]];
+    }
+
+    Variants {
+        id: screens
+        model: root.activeScreens
+        delegate: Component {
         PanelWindow {
             id: overlay
 
@@ -188,12 +365,14 @@ Variants {
             readonly property real mascotScale: Math.max(0.6, Math.min(1.6, root.size))
 
             // Position model (same ids as the editor's position pad). Notch
-            // mode only makes sense against the top edge, so it pins to top-*.
+            // mode supports top and bottom; side placement is the pill's
+            // natural mode and can be turned vertical with `angle`.
             readonly property bool notch: String(root.appearance || "island").toLowerCase() === "notch"
             readonly property bool rawLeft: String(root.position).indexOf("-left") !== -1
             readonly property bool rawRight: String(root.position).indexOf("-right") !== -1
-            readonly property bool posTop: overlay.notch || String(root.position).indexOf("top-") === 0
-            readonly property bool posBottom: !overlay.notch && String(root.position).indexOf("bottom-") === 0
+            readonly property bool posBottom: String(root.position).indexOf("bottom-") === 0
+            readonly property bool posTop: overlay.notch ? !overlay.posBottom
+                : String(root.position).indexOf("top-") === 0
             readonly property bool posLeft: overlay.notch ? overlay.rawLeft : String(root.position).indexOf("-left") !== -1
             readonly property bool posRight: overlay.notch ? overlay.rawRight : String(root.position).indexOf("-right") !== -1
             readonly property bool panelBelow: !overlay.posBottom
@@ -287,13 +466,23 @@ Variants {
                 : Math.round((overlay.layoutW - overlay.notchW) / 2)
             readonly property real chromeX: overlay.notch ? overlay.notchX : overlay.frameX
 
-            implicitWidth: overlay.slotW + overlay.boxMargin * 2
-            implicitHeight: overlay.boxMargin * 2 + overlay.chromeH + overlay.panelLayoutSpan
-            readonly property real frameX: overlay.posLeft ? overlay.boxMargin
+            implicitWidth: Math.max(overlay.slotW, overlay.chromeMaskW) + overlay.boxMargin * 2
+            implicitHeight: Math.max(overlay.boxMargin * 2 + overlay.chromeH + overlay.panelLayoutSpan,
+                overlay.chromeMaskH + overlay.boxMargin * 2)
+            // Rotated chrome needs a little padding so its AABB stays inside
+            // the layer surface (otherwise a 90-degree pill is clipped).
+            readonly property real anglePadX: Math.max(0, (overlay.chromeMaskW - overlay.chromeW) / 2)
+            readonly property real anglePadY: Math.max(0, (overlay.chromeMaskH - overlay.chromeH) / 2)
+            readonly property real frameX: (overlay.posLeft ? overlay.boxMargin
                 : overlay.posRight ? (overlay.layoutW - overlay.pillW - overlay.boxMargin)
-                : Math.round((overlay.layoutW - overlay.pillW) / 2)
-            readonly property real frameY: overlay.notch ? overlay.notchY
-                : overlay.boxMargin + (overlay.panelBelow ? 0 : overlay.panelLayoutSpan)
+                : Math.round((overlay.layoutW - overlay.pillW) / 2))
+                + overlay.anglePadX
+            readonly property real frameY: (overlay.notch
+                ? (overlay.posBottom
+                    ? overlay.implicitHeight - overlay.boxMargin - overlay.chromeH - overlay.anglePadY
+                    : overlay.notchY)
+                : overlay.boxMargin + (overlay.panelBelow ? 0 : overlay.panelLayoutSpan))
+                + overlay.anglePadY
             readonly property real panelX: Math.round(Math.max(0, Math.min(
                 overlay.layoutW - overlay.panelW,
                 overlay.chromeX + overlay.chromeW / 2 - overlay.panelW / 2)))
@@ -351,16 +540,24 @@ Variants {
             focusable: false
 
             // Input mask: the chrome (island / notch) always, the dock while it
-            // is unfolded. In notch mode a flush rectangle is used (the rounded
-            // bottom corners only clip a few idle pixels).
+            // is unfolded. The chrome is rotated by `angle`, so the mask uses
+            // the rotated bounding box; this keeps the hit area clickable at
+            // 90/180/270 degrees without a second region per angle.
+            readonly property real angleRad: root.angle * Math.PI / 180
+            readonly property real chromeMaskW: Math.abs(Math.cos(overlay.angleRad)) * overlay.chromeW
+                + Math.abs(Math.sin(overlay.angleRad)) * overlay.chromeH
+            readonly property real chromeMaskH: Math.abs(Math.sin(overlay.angleRad)) * overlay.chromeW
+                + Math.abs(Math.cos(overlay.angleRad)) * overlay.chromeH
+            readonly property real chromeMaskX: overlay.chromeX + overlay.chromeW / 2 - overlay.chromeMaskW / 2
+            readonly property real chromeMaskY: overlay.frameY + overlay.chromeH / 2 - overlay.chromeMaskH / 2
             mask: Region {
                 Region {
-                    x: Math.round(overlay.notch ? overlay.chromeX : overlay.chromeX - overlay.s(2))
-                    y: Math.round(overlay.notch ? 0 : overlay.frameY - overlay.s(2))
+                    x: Math.round(overlay.chromeMaskX - overlay.s(2))
+                    y: Math.round(overlay.chromeMaskY - overlay.s(2))
                     width: overlay.chromeShown
-                        ? Math.round(overlay.chromeW + overlay.s(4)) : 0
+                        ? Math.round(overlay.chromeMaskW + overlay.s(4)) : 0
                     height: overlay.chromeShown
-                        ? Math.round(overlay.chromeH + overlay.s(4)) : 0
+                        ? Math.round(overlay.chromeMaskH + overlay.s(4)) : 0
                     radius: overlay.notch ? 0 : Math.round(overlay.pillH / 2 + overlay.s(2))
                 }
                 Region {
@@ -382,78 +579,16 @@ Variants {
                 root.uiScale)
             function s(v) { return Metrics.s(v, overlay.baseScale) }
 
-            // ── settings.json adapter (optional) ───────────────────────────
-            function applySettings(txt) {
-                try {
-                    let p = JSON.parse(txt);
-                    let m = (p.mascots && typeof p.mascots === "object") ? p.mascots : {};
-                    if (m.enabled !== undefined) root.enabled = m.enabled === true;
-                    if (m.size !== undefined) root.size = m.size;
-                    if (m.species !== undefined) root.species = m.species;
-                    if (m.count !== undefined) root.count = m.count;
-                    root.speciesOptions = (m.options && typeof m.options === "object") ? m.options : {};
-                    if (m.position !== undefined) root.position = m.position;
-                    if (m.appearance !== undefined) root.appearance = String(m.appearance);
-                    if (m.notchWidth !== undefined) root.notchWidth = m.notchWidth;
-                    if (m.notchHeight !== undefined) root.notchHeight = m.notchHeight;
-                    if (m.notchOffset !== undefined) root.notchOffset = m.notchOffset;
-                    if (m.notchReserve !== undefined) root.notchReserve = m.notchReserve === true;
-                    let d = (m.dock && typeof m.dock === "object") ? m.dock : {};
-                    if (d.size !== undefined) root.dockSize = String(d.size);
-                    if (d.width !== undefined) root.dockWidth = d.width;
-                    if (d.style !== undefined) root.dockStyle = String(d.style);
-                    if (d.columns !== undefined) root.dockColumns = Math.max(2, Math.min(8, Math.round(d.columns)));
-                    if (d.rows !== undefined) root.dockRows = Math.max(1, Math.min(4, Math.round(d.rows)));
-                    if (d.hero !== undefined) root.dockShowHero = d.hero === true;
-                    if (d.quick !== undefined) root.dockShowQuick = d.quick === true;
-                    if (d.search !== undefined) root.dockShowSearch = d.search === true;
-                    let w = (m.watcher && typeof m.watcher === "object") ? m.watcher : {};
-                    if (w.format !== undefined) root.watcherFormat = String(w.format);
-                    if (w.seconds !== undefined) root.watcherSeconds = w.seconds === true;
-                    if (w.speed !== undefined) root.watcherSpeed = w.speed;
-                    if (w.moods !== undefined) root.watcherMoods = w.moods === true;
-                    if (w.eye !== undefined) root.watcherEye = w.eye === true;
-                    if (p.uiScale !== undefined) root.uiScale = p.uiScale;
-                    let b = p.bar || {};
-                    if (b.position) root.barPosition = b.position;
-                    if (b.thickness) root.barThickness = b.thickness;
-                } catch (e) {}
-            }
-            Loader {
-                active: root.settingsPath !== ""
-                sourceComponent: settingsAdapter
-            }
-            Component {
-                id: settingsAdapter
-                Item {
-                    Process {
-                        id: settingsCat
-                        command: ["cat", root.settingsPath]
-                        running: true
-                        stdout: StdioCollector {
-                            onStreamFinished: overlay.applySettings(this.text)
-                        }
-                    }
-                    FileView {
-                        path: root.settingsPath
-                        watchChanges: true
-                        blockLoading: true
-                        onFileChanged: settingsCat.running = true
-                    }
-                }
-            }
-
             // ── widget occlusion (optional, injected) ──────────────────────
-            property string currentWidget: ""
-            readonly property bool dockOpen: overlay.currentWidget !== ""
-                && overlay.currentWidget === root.dockWidgetName
+            readonly property bool dockOpen: root.currentWidget !== ""
+                && root.currentWidget === root.dockWidgetName
             function widgetOverlaps() {
-                if (overlay.currentWidget === "" || overlay.currentWidget === "hidden"
-                    || overlay.currentWidget === root.dockWidgetName) return false;
+                if (root.currentWidget === "" || root.currentWidget === "hidden"
+                    || root.currentWidget === root.dockWidgetName) return false;
                 if (!root.widgetRectProvider) return false;
                 let t = null;
                 try {
-                    t = root.widgetRectProvider(overlay.currentWidget,
+                    t = root.widgetRectProvider(root.currentWidget,
                         overlay.screen ? overlay.screen.width : 1920,
                         overlay.screen ? overlay.screen.height : 1080,
                         root.uiScale);
@@ -477,42 +612,6 @@ Variants {
             readonly property bool chromeShown: overlay.shown
                 && !(overlay.notch && overlay.panelOpen && !overlay.dockJoined)
             readonly property bool mascotsShown: overlay.chromeShown && !overlay.dockHeld
-
-            Loader {
-                active: root.widgetStatePath !== ""
-                sourceComponent: widgetAdapter
-            }
-            Component {
-                id: widgetAdapter
-                Item {
-                    Process {
-                        id: widgetCat
-                        command: ["cat", root.widgetStatePath]
-                        running: false
-                        stdout: StdioCollector {
-                            onStreamFinished: overlay.applyWidget(this.text.trim())
-                        }
-                    }
-                    FileView {
-                        path: root.widgetStatePath
-                        watchChanges: true
-                        blockLoading: true
-                        onFileChanged: widgetCat.running = true
-                    }
-                    Component.onCompleted: widgetCat.running = true
-                }
-            }
-            function applyWidget(name) {
-                let prev = overlay.currentWidget;
-                if (name === prev) return;
-                overlay.currentWidget = name;
-                let opened = name !== "" && name !== "hidden";
-                let closed = prev !== "" && prev !== "hidden" && !opened;
-                if (opened || closed) {
-                    overlay.react();
-                    idleTimer.restart();
-                }
-            }
 
             // ── dock panel ─────────────────────────────────────────────────
             property bool panelOpen: false
@@ -554,49 +653,33 @@ Variants {
                 else overlay.togglePanel();
             }
 
-            // ── cursor (Hyprland) ──────────────────────────────────────────
-            property real cursorX: 0
-            property real cursorY: 0
-            property bool cursorHere: false
-            Process {
-                id: cursorProc
-                command: ["bash", "-c", "while true; do hyprctl cursorpos 2>/dev/null; sleep 0.06; done"]
-                running: root.enabled
-                stdout: SplitParser { onRead: data => overlay.updateCursor(data) }
-            }
-            function updateCursor(line) {
-                let p = String(line).split(",");
-                if (p.length < 2) return;
-                let x = parseFloat(p[0]);
-                let y = parseFloat(p[1]);
-                if (isNaN(x) || isNaN(y)) return;
+            // ── cursor / events (shared by the root) ──────────────────────
+            readonly property bool cursorHere: root.cursorValid && overlay.screen
+                && root.cursorX >= overlay.screen.x
+                && root.cursorX < overlay.screen.x + overlay.screen.width
+                && root.cursorY >= overlay.screen.y
+                && root.cursorY < overlay.screen.y + overlay.screen.height
+            readonly property bool cursorNear: {
+                if (!overlay.cursorHere) return false;
                 let sx = overlay.screen ? overlay.screen.x : 0;
                 let sy = overlay.screen ? overlay.screen.y : 0;
-                overlay.cursorX = x;
-                overlay.cursorY = y;
-                let sw = overlay.screen ? overlay.screen.width : overlay.width;
-                let sh = overlay.screen ? overlay.screen.height : overlay.height;
-                overlay.cursorHere = x >= sx && x < sx + sw && y >= sy && y < sy + sh;
-                if (overlay.cursorHere) idleTimer.restart();
+                let icx = overlay.originX + overlay.chromeX + overlay.chromeW / 2;
+                let icy = overlay.originY + overlay.frameY + overlay.chromeH / 2;
+                let dx = root.cursorX - (sx + icx);
+                let dy = root.cursorY - (sy + icy);
+                let r = overlay.s(700);
+                return dx * dx + dy * dy < r * r;
             }
-
-            // ── window events (Hyprland socket2) ───────────────────────────
-            Process {
-                id: eventsProc
-                command: ["bash", "-c",
-                    "SOCK=\"${XDG_RUNTIME_DIR:-/tmp}/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock\"; " +
-                    "while true; do socat -u UNIX-CONNECT:$SOCK - 2>/dev/null; sleep 0.5; done"]
-                running: root.enabled
-                stdout: SplitParser { onRead: data => overlay.handleEvent(data) }
-            }
-            function handleEvent(line) {
-                let s = String(line);
-                if (s.indexOf("openwindow>>") === 0 || s.indexOf("closewindow>>") === 0) {
+            Connections {
+                target: root
+                function onWindowEvent() {
                     overlay.react();
-                } else if (s.indexOf("activewindow>>") === 0) {
-                    overlay.pickMood(Math.floor(Math.random() * overlay.mascotCount));
+                    idleTimer.restart();
                 }
-                idleTimer.restart();
+                function onActiveWindowEvent() {
+                    overlay.pickMood(Math.floor(Math.random() * overlay.mascotCount));
+                    idleTimer.restart();
+                }
             }
 
             // ── moods (per mascot, staggered random reactions) ──────────────
@@ -661,16 +744,28 @@ Variants {
             readonly property real mascotSize: overlay.s(30) * overlay.mascotScale
             readonly property real zSize: overlay.s(11) * overlay.mascotScale
             property real clock: 0
-            property var mpos: [
-                { x: 30, y: 10, px: 0, py: 0 },
-                { x: 90, y: 10, px: 0, py: 0 },
-                { x: 150, y: 10, px: 0, py: 0 }
-            ]
+            // Seed from the live chrome geometry instead of a hardcoded top-left
+            // row. The old constants left the mascots outside a centered notch
+            // until the pointer moved (and with the idle gate, sometimes forever).
+            function defaultMpos() {
+                let a = [];
+                let n = overlay.mascotCount;
+                for (let i = 0; i < n; i++) {
+                    let tx = overlay.chromeX + overlay.chromeW * (i + 0.5) / n
+                        - overlay.mascotSize / 2;
+                    let ty = overlay.frameY + overlay.chromeH / 2 - overlay.mascotSize * 0.55;
+                    a.push({ x: tx, y: ty, px: 0, py: 0 });
+                }
+                return a;
+            }
+            property var mpos: overlay.defaultMpos()
 
             Timer {
-                interval: 16
+                // 10 Hz, only while the cursor is moving, near this screen's
+                // chrome. The old 60 Hz step on every monitor kept a core busy.
+                interval: 100
                 repeat: true
-                running: root.enabled && overlay.mascotsShown
+                running: root.enabled && overlay.mascotsShown && overlay.cursorNear && root.cursorMoving
                 onTriggered: overlay.step()
             }
 
@@ -716,31 +811,78 @@ Variants {
                 width: overlay.chromeW
                 height: overlay.chromeH
                 radius: overlay.notch ? 0 : height / 2
+                rotation: root.angle
+                transformOrigin: Item.Center
                 visible: opacity > 0.01
                 opacity: overlay.chromeShown ? 1.0 : 0.0
                 scale: overlay.chromeShown ? 1.0 : 0.78
-                color: overlay.notch ? "transparent"
+                color: (overlay.notch || Theme.liquidGlass) ? "transparent"
                     : Qt.rgba(root.palette.base.r, root.palette.base.g,
                               root.palette.base.b,
                               root.palette.glassOn === true
                                   ? Math.min(0.95, root.palette.base.a + 0.05) : 1.0)
                 border.width: overlay.notch ? 0 : 1
                 border.color: overlay.notch ? "transparent" : Qt.alpha(root.palette.surface1, 0.9)
+
+                LiquidGlass {
+                    visible: !overlay.notch
+                    enabled: Theme.liquidGlass && !overlay.notch
+                    anchors.fill: parent
+                    screenPosOverride: {
+                        const p = frame.mapToItem(null, 0, 0);
+                        return Qt.vector2d(p.x, p.y);
+                    }
+                    topLeftRadius: frame.radius
+                    topRightRadius: frame.radius
+                    bottomLeftRadius: frame.radius
+                    bottomRightRadius: frame.radius
+                    tintColor: "#101018"
+                    tintAmount: 0.38
+                    interiorShade: 0.38
+                    bezel: Math.max(6, Math.min(16, Math.min(width, height) * 0.25))
+                    frost: Math.max(4, Math.min(12, Math.min(width, height) * 0.18))
+                    rim: 0.95
+                }
+
+                // Notch mode: the silhouette is cut by the Shape above, but a
+                // rounded-bottom lens still gives it the same smoked glass.
+                LiquidGlass {
+                    visible: overlay.notch
+                    enabled: Theme.liquidGlass && overlay.notch
+                    anchors.fill: parent
+                    screenPosOverride: {
+                        const p = frame.mapToItem(null, 0, 0);
+                        return Qt.vector2d(p.x, p.y);
+                    }
+                    topLeftRadius: 0
+                    topRightRadius: 0
+                    bottomLeftRadius: overlay.notchRadius
+                    bottomRightRadius: overlay.notchRadius
+                    tintColor: "#101018"
+                    tintAmount: 0.42
+                    interiorShade: 0.38
+                    bezel: Math.max(6, Math.min(16, Math.min(width, height) * 0.25))
+                    frost: Math.max(4, Math.min(12, Math.min(width, height) * 0.18))
+                    rim: 0.95
+                }
                 Behavior on opacity { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
                 Behavior on scale { NumberAnimation { duration: 320; easing.type: Easing.OutBack } }
 
-                // Notch silhouette: flush with the top edge, concave top fillets
-                // and rounded bottom corners, no coloured border.
+                // Notch silhouette: flush with the active edge, concave
+                // fillets and rounded inner corners, no coloured border.
                 Shape {
                     id: notchShape
                     anchors.fill: parent
                     visible: overlay.notch
+                    rotation: overlay.posBottom ? 180 : 0
+                    transformOrigin: Item.Center
                     ShapePath {
                         strokeWidth: 0
-                        fillColor: Qt.rgba(root.palette.base.r, root.palette.base.g,
-                                           root.palette.base.b,
-                                           root.palette.glassOn === true
-                                               ? Math.min(0.95, root.palette.base.a + 0.05) : 1.0)
+                        fillColor: Theme.liquidGlass ? "transparent"
+                            : Qt.rgba(root.palette.base.r, root.palette.base.g,
+                                      root.palette.base.b,
+                                      root.palette.glassOn === true
+                                          ? Math.min(0.95, root.palette.base.a + 0.05) : 1.0)
                         startX: 0
                         startY: overlay.s(9)
                         PathQuad { x: overlay.s(9); y: 0
@@ -850,10 +992,30 @@ Variants {
                     anchors.top: overlay.panelBelow ? parent.top : undefined
                     anchors.bottom: overlay.panelBelow ? undefined : parent.bottom
                     radius: overlay.s(14)
-                    color: Qt.rgba(root.palette.base.r, root.palette.base.g, root.palette.base.b,
-                        root.palette.glassOn === true ? 0.9 : 1.0)
+                    color: Theme.liquidGlass ? "transparent"
+                        : Qt.rgba(root.palette.base.r, root.palette.base.g, root.palette.base.b,
+                            root.palette.glassOn === true ? 0.9 : 1.0)
                     border.width: 1
                     border.color: Qt.alpha(root.palette.surface1, 0.9)
+
+                    LiquidGlass {
+                        anchors.fill: parent
+                        enabled: Theme.liquidGlass
+                        screenPosOverride: {
+                            const p = popoverBg.mapToItem(null, 0, 0);
+                            return Qt.vector2d(p.x, p.y);
+                        }
+                        topLeftRadius: overlay.s(14)
+                        topRightRadius: overlay.s(14)
+                        bottomLeftRadius: overlay.s(14)
+                        bottomRightRadius: overlay.s(14)
+                        tintColor: "#101018"
+                        tintAmount: 0.38
+                        interiorShade: 0.38
+                        bezel: Math.max(6, Math.min(16, Math.min(width, height) * 0.25))
+                        frost: Math.max(4, Math.min(12, Math.min(width, height) * 0.18))
+                        rim: 0.95
+                    }
                 }
 
                 Loader {
@@ -913,3 +1075,4 @@ Variants {
         }
     }
 }
+    }

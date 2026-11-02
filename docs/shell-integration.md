@@ -60,7 +60,8 @@ A species manifest (`*.json`):
   one becomes **clickable**: clicking its mascot opens that popover (see below).
 - The species Nyx ships (built-ins + the shell-agnostic "info" species:
   `battery`, `cpu`, `memory`, `wifi`, `volume`, `temperature`, and `github`)
-  are declared in its `mascots/species.json`.
+  are discovered from their individual `mascots/<id>/manifest.json` files;
+  there is no aggregate `mascots/species.json`.
 
 Which species are shown, and in which order, comes from
 `settings.json → mascots.species`:
@@ -101,6 +102,23 @@ sizes itself to the popover's `implicitWidth/Height` and grows/shrinks with the
 reveal. The popover closes when you click the island again; clicking the island
 elsewhere opens the dock as before. (Outside-click-to-close would need a
 full-screen input grab, which conflicts with the click-through layer.)
+
+## Placement and angle
+
+The watcher typewriter (`mascots.watcher.animate`) is off by default: it
+redraws a full-width notch once per second. Turning it on restores the reveal
+animation at a measurable cost.
+
+`settings.json → mascots.screen` is `focused` by default: one render surface
+follows the keyboard-focused monitor. Set it to `all` for an island on every
+display.
+
+`settings.json → mascots.position` uses the nine editor slots
+(`top-*`, `center-*`, `bottom-*`). Pill mode can use all of them; Notch is
+supported on the top and bottom edges (the silhouette is mirrored at the
+bottom). `mascots.angle` (-180…180) rotates the chrome for vertical side pills
+(90/270) or an inverted notch (180); the input mask uses the rotated bounding
+box. The dock itself stays upright and unfolds toward the screen centre.
 
 ## Notch cards ("things")
 

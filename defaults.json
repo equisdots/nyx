@@ -10,6 +10,7 @@
     "count": 1,
     "position": "top-center",
     "appearance": "notch",
+    "angle": 0,
     "notchWidth": 280,
     "notchReserve": true,
     "notchHeight": 27,
@@ -29,13 +30,15 @@
       "seconds": true,
       "speed": 0.7,
       "moods": true,
-      "eye": false
+      "eye": false,
+      "animate": false
     },
     "options": {
       "battery": {
         "color": "blue",
         "size": 1.1
       }
-    }
+    },
+    "screen": "focused"
   }
 }

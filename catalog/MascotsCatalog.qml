@@ -34,6 +34,7 @@ Item {
     readonly property string script: String(Qt.resolvedUrl("mascots_scan.sh")).replace(/^file:\/\//, "")
     readonly property string mascotsUser: home + "/.config/hypr/mascots/species"
     readonly property string thingsUser: home + "/.config/hypr/mascots/notch"
+    readonly property string ownRoot: String(Qt.resolvedUrl("..")).replace(/^file:\/\//, "")
 
     // Provider entries: [{ plugin, rel }] for a `provides.mascots.<key>`.
     function providers(key) {
@@ -56,6 +57,9 @@ Item {
         let out = [];
         for (let i = 0; i < ps.length; i++)
             out.push(PluginsCatalog.uiPath(ps[i].plugin, ps[i].rel));
+        // PluginsCatalog can still be empty on the first scan pass; never lose
+        // the species shipped next to this plugin.
+        if (out.length === 0) out.push(catalog.ownRoot + "/mascots");
         return out;
     }
     readonly property var cardsDirs: {
@@ -65,6 +69,11 @@ Item {
             out.push(PluginsCatalog.uiPath(ps[i].plugin, ps[i].rel));
         return out;
     }
+    // PluginsCatalog starts empty and fills asynchronously. The dirs can also
+    // change when a provider is installed/enabled; restart the scan so the
+    // shipped species/cards are not lost on the first empty pass.
+    onSpeciesDirsChanged: catalog.refresh()
+    onCardsDirsChanged: catalog.refresh()
 
     property var mascots: []
     property var things: []

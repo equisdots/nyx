@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Quickshell.Hyprland
 import "../front"
 import "../catalog"
 
@@ -197,8 +198,11 @@ Item {
         let bar = (root.host ? root.host.global("bar", {}) : {});
         let out = [];
         let screens = Quickshell.screens || [];
+        let focused = (m.screen === "focused" && Hyprland.focusedMonitor)
+            ? String(Hyprland.focusedMonitor.name) : "";
         for (let i = 0; i < screens.length; i++) {
             let scr = screens[i];
+            if (focused !== "" && scr.name !== focused) continue;
             let k = (root.host && root.host.widgets) ? root.host.widgets.getScale(scr.width, scr.height, uiScale) : 1.0;
             let o = root.obstacleFor(m, bar, scr.width, scr.height, k);
             if (o) { o.screen = scr.name; out.push(o); }

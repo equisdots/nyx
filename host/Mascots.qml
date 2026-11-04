@@ -108,7 +108,7 @@ Item {
     Component.onCompleted: root.subscribeStats()
     Component.onDestruction: if (root.host && root.host.stats) root.host.stats.unsubscribe()
 
-    // Live wallpaper preview for the Davincix card: davinci repaints
+    // Live wallpaper preview for the Davinci card: davinci repaints
     // current_wallpaper.png whenever the background changes; watching the file
     // bumps wallpaperRev so the dock thumbnail reloads with a fresh URL.
     // The host is injected after this file loads: keep the path empty until

@@ -1,6 +1,6 @@
 [
   { "id": "calendar",          "label": "Timex",     "icon": "󰅐", "order": 10 },
-  { "id": "wallpaper",         "label": "Davincix",  "icon": "󰥶", "order": 20 },
+  { "id": "wallpaper",         "label": "Davinci",  "icon": "󰥶", "order": 20 },
   { "id": "applauncher",       "label": "Launcher",  "icon": "󰀻", "order": 30 },
   { "id": "clipboard",         "label": "Clipboard", "icon": "󰨸", "order": 40 },
   { "id": "idle",              "label": "Idle",      "icon": "󰤄", "order": 50 },

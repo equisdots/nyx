@@ -207,3 +207,13 @@ The overlay is a click-through layer surface (`qs-mascots`) with an input mask
 limited to the chrome and an open panel; it never captures input outside those
 regions. With `mascots.screen: "focused"` there is one surface, otherwise one
 per screen.
+
+## License
+
+AGPL-3.0-or-later — see [LICENSE](LICENSE). Copyright (C) 2026 xscriptor <x@xscriptor.com>.
+
+This repository is licensed under the GNU Affero General Public License, version 3 or any later version. If you modify the software and let users interact with it over a network, you must offer them the corresponding source.
+
+Releases published before 2026-11-13 were distributed under the MIT License and remain available under those terms.
+
+Third-party components, fonts, icons, images, sounds, vendored code and other assets keep their original licenses and are not covered by this license. See THIRD-PARTY.md / CREDITS.md where present.
